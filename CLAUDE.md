@@ -2,70 +2,94 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Structure Overview
+## Project Overview
 
-This is a development directory for an AI-related project. Based on the configuration and typical patterns, this appears to be set up for developing AI applications or tools.
+This is a VyOS Web UI project - a React-based web interface for managing VyOS network operating systems. The application provides authentication, network configuration management, and monitoring capabilities.
 
-## Common Commands
+## Architecture
 
-### Development Setup
-```bash
-# Install dependencies (if package.json exists)
-npm install
+The application follows a React/TypeScript frontend architecture with the following key components:
 
-# Run development server
-npm run dev
+- **Frontend Framework**: React 19 with TypeScript
+- **Router**: React Router DOM for navigation
+- **State Management**: React Context API for authentication state
+- **HTTP Client**: Axios with interceptors for API communication
+- **Styling**: Tailwind CSS (via index.css)
+- **Charts**: Chart.js for monitoring dashboards
+- **Build Tool**: Vite
 
-# Build for production
-npm run build
+## Key Features
 
-# Run tests
-npm test
+1. **Authentication System**:
+   - JWT-based authentication via AuthService
+   - Role-based access control
+   - Protected routes implementation
+   - Session management
 
-# Lint code
-npm run lint
+2. **Network Configuration Management**:
+   - Routing configuration
+   - Firewall rules management
+   - Interface configuration
+   - System settings management
+   - Configuration apply/revert functionality
+
+3. **Monitoring Dashboard**:
+   - System metrics (CPU, memory, disk, uptime)
+   - Network traffic statistics
+   - Alert management
+   - Real-time monitoring charts
+
+## Key Services
+
+- `apiClient.ts`: Axios-based API client with auth interceptors
+- `authService.ts`: Authentication and user management
+- `networkConfigService.ts`: Network configuration operations
+- `vyosMonitoringService.ts`: VyOS-specific monitoring functionality
+
+## Project Structure
+
+```
+src/
+├── components/           # Reusable UI components
+│   ├── Auth/             # Authentication components
+│   ├── Layout/           # Header and Sidebar components
+│   ├── Dashboard/        # Dashboard component
+│   ├── Monitoring/       # Monitoring components
+│   └── NetworkConfig/    # Network configuration components
+├── contexts/             # React Context providers
+├── hooks/                # Custom React hooks
+├── pages/                # Top-level route components
+├── services/             # Business logic services
+│   └── monitoring/       # Monitoring-specific services
+├── types/                # TypeScript type definitions
+├── utils/                # Utility functions
+├── App.tsx               # Main application component
+└── index.tsx             # Entry point
 ```
 
-### Running Individual Tests
-```bash
-# Run specific test file
-npm test path/to/test-file.test.js
+## Development Commands
 
-# Run tests with coverage
-npm run test:coverage
+- `npm run dev` - Start development server (runs on port 3000)
+- `npm run build` - Build production bundle to dist/
+- `npm run test` - Run unit tests with Jest
+- `npm run test:watch` - Run tests in watch mode (if configured)
+- `npm run lint` - Lint code with ESLint (if configured)
 
-# Run watch mode for tests
-npm run test:watch
-```
+## Testing
 
-## Key Files and Directories
+- Unit tests use Jest with React Testing Library
+- Located in `src/__tests__/` directory
+- Services and components have dedicated test files
+- Mocks axios client for API testing
 
-- `src/` - Source code directory
-- `tests/` - Test files
-- `package.json` - Project dependencies and scripts
-- `README.md` - Project documentation
-- `.gitignore` - Git ignore patterns
+## Environment Variables
 
-## Development Workflow
+- `VYOS_API_BASE_URL` - Base URL for VyOS API (defaults to https://localhost:8443/api)
 
-1. Make changes to source files in `src/`
-2. Run tests to ensure functionality is preserved
-3. Lint code to maintain consistency
-4. Commit changes with descriptive messages
+## Important Patterns
 
-## Architecture Notes
-
-This appears to be a typical Node.js project structure that would include:
-- Entry point files (index.js, main.js)
-- Modular components
-- Configuration files
-- Test suites
-
-## Environment Setup
-
-The `.claude` directory contains configuration for Claude's access permissions, including:
-- Web fetching capabilities for documentation sites
-- GitHub access permissions
-- Web search functionality
-
-This project likely involves AI tooling or system administration tasks based on the configuration.
+- Authentication state is managed through AuthContext
+- API requests automatically include authentication tokens via axios interceptors
+- Network configuration changes follow CRUD operations with appropriate error handling
+- Components use hooks for state management and service integration
+- Type safety is enforced with TypeScript interfaces

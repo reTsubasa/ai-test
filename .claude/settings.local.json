@@ -13,7 +13,16 @@
       "Bash(npm run build:*)",
       "Bash(npm run)",
       "Bash(npm start)",
-      "Bash(npx tsc --noEmit --project /Users/hyc/Documents/new_ai/tsconfig.json)"
+      "Bash(npx tsc --noEmit --project /Users/hyc/Documents/new_ai/tsconfig.json)",
+      "Bash(npx vite --help:*)",
+      "Bash(npx vite:*)",
+      "Bash(pkill:*)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)",
+      "Bash(npm test:*)",
+      "Bash(npx jest:*)",
+      "Bash(curl:*)",
+      "Bash(git remote add origin https://github.com/reTsubasa/vywebui.git)"
     ]
   }
 }
