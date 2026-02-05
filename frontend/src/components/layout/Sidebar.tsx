@@ -5,12 +5,14 @@ import {
   Users,
   Settings,
   ChevronRight,
+  Server,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { clsx } from 'clsx';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Nodes', href: '/nodes', icon: Server },
   { name: 'Network', href: '/network', icon: Network },
   { name: 'Monitoring', href: '/monitoring', icon: Activity },
   { name: 'Users', href: '/users', icon: Users },

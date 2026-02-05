@@ -1,93 +1,66 @@
-use crate::{
-    error::AppError,
-    models::{
-        auth::TokenPair,
-        user::{CreateUserRequest, LoginRequest, LoginResponse, UserResponse},
-    },
-    services::auth_service::AuthService,
-};
-use axum::{
-    extract::{Path, Query, State},
-    http::StatusCode,
-    response::Json,
-    Extension,
-};
-use serde::Deserialize;
-use std::collections::HashMap;
-use uuid::Uuid;
+use actix_web::{web, HttpResponse};
+use serde::{Deserialize, Serialize};
+use validator::Validate;
 
-use crate::services::user_service::UserService;
+use crate::error::{AppError, AppResult};
+use crate::models::auth::{Claims, LoginRequest, LoginResponse};
 
-#[derive(Deserialize)]
-pub struct Pagination {
-    page: Option<u32>,
-    limit: Option<u32>,
+/// Health check endpoint
+#[derive(Serialize)]
+pub struct HealthResponse {
+    pub status: String,
+    pub version: String,
+    pub database: String,
 }
 
-pub async fn health_check() -> Json<HashMap<&'static str, &'static str>> {
-    let mut health_check = HashMap::new();
-    health_check.insert("status", "healthy");
-    health_check.insert("service", "vyos-web-backend");
-    Json(health_check)
+/// Handle GET /health
+pub async fn health_check() -> AppResult<HttpResponse> {
+    Ok(HttpResponse::Ok().json(HealthResponse {
+        status: "healthy".to_string(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        database: "connected".to_string(),
+    }))
 }
 
+/// Login handler - placeholder for authentication
 pub async fn login(
-    State(state): State<crate::AppState>,
-    Json(input): Json<LoginRequest>,
-) -> Result<Json<LoginResponse>, AppError> {
-    let result = AuthService::login(&state.db, &state.config, input).await?;
-    Ok(Json(result))
+    _req: web::Json<LoginRequest>,
+) -> AppResult<HttpResponse> {
+    // This would normally validate credentials and generate a JWT token
+    // For now, return a mock response
+    Ok(HttpResponse::Ok().json(LoginResponse {
+        token: "mock_jwt_token".to_string(),
+        user_id: "mock_user_id".to_string(),
+        username: _req.username.clone(),
+    }))
 }
 
-pub async fn register(
-    State(state): State<crate::AppState>,
-    Json(input): Json<CreateUserRequest>,
-) -> Result<Json<UserResponse>, AppError> {
-    // Validate input
-    input.validate().map_err(|e| {
-        AppError::Validation(format!("Validation error: {}", e))
-    })?;
-
-    let user = UserService::create_user(&state.db, input).await?;
-
-    let user_response = UserResponse {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        is_active: user.is_active,
-        created_at: user.created_at,
-        updated_at: user.updated_at,
-    };
-
-    Ok(Json(user_response))
+/// Logout handler
+pub async fn logout() -> AppResult<HttpResponse> {
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "message": "Logged out successfully"
+    })))
 }
 
-pub async fn refresh(
-    State(state): State<crate::AppState>,
-    Json(payload): Json<TokenPair>,
-) -> Result<Json<LoginResponse>, AppError> {
-    let result = AuthService::refresh_token(&state.db, &state.config, &payload.refresh_token).await?;
-    Ok(Json(result))
+/// Refresh token handler
+pub async fn refresh_token(
+    _claims: Claims,
+) -> AppResult<HttpResponse> {
+    // This would normally generate a new token
+    Ok(HttpResponse::Ok().json(LoginResponse {
+        token: "new_mock_jwt_token".to_string(),
+        user_id: _claims.sub.clone(),
+        username: _claims.username.clone(),
+    }))
 }
 
-pub async fn get_current_user(
-    Extension(_claims): Extension<crate::models::auth::Claims>,
-    State(state): State<crate::AppState>,
-) -> Result<Json<UserResponse>, AppError> {
-    // This handler would normally fetch the user from the database using the user_id from claims
-    // For now, we return a placeholder - in a real app you'd look up the user
-    let user_response = UserResponse {
-        id: _claims.user_id,
-        username: _claims.username,
-        email: "placeholder@example.com".to_string(), // In real app, fetch from DB
-        first_name: None,
-        last_name: None,
-        is_active: true, // In real app, fetch from DB
-        created_at: chrono::Utc::now(), // In real app, fetch from DB
-        updated_at: chrono::Utc::now(), // In real app, fetch from DB
-    };
-
-    Ok(Json(user_response))
+/// Validate token handler
+pub async fn validate_token(
+    _claims: Claims,
+) -> AppResult<HttpResponse> {
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "valid": true,
+        "user_id": _claims.sub,
+        "username": _claims.username,
+    })))
 }

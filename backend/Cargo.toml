@@ -1,33 +1,58 @@
 [package]
-name = "vyos-web-backend"
+name = "vyos-web-ui-backend"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = { version = "0.7", features = ["ws", "multipart", "headers"] }
-axum-extra = { version = "0.9", features = ["cookie"] }
-tokio = { version = "1.0", features = ["full"] }
+# Web framework
+actix-web = "4.4"
+actix-cors = "0.7"
+actix-rt = "2.9"
+
+# Database ORM
+sqlx = { version = "0.7", features = ["runtime-tokio", "tls-rustls", "mysql", "sqlite", "chrono", "uuid"] }
+
+# Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "mysql", "chrono", "uuid", "migrate"] }
-uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+
+# Authentication & Security
 jsonwebtoken = "9.2"
 bcrypt = "0.15"
+
+# HTTP Client
+reqwest = { version = "0.11", features = ["json"] }
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID generation
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Input validation
+validator = { version = "0.16", features = ["derive"] }
+
+# Error handling
 anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-config = "0.14"
-chrono = { version = "0.4", features = ["serde"] }
-validator = { version = "0.18", features = ["derive"] }
-regex = "1.0"
-futures = "0.3"
-tower = { version = "0.4", features = ["cors", "trace"] }
-tower-http = { version = "0.5", features = ["cors", "fs", "trace", "auth"] }
-thiserror = "1.0"
-dotenv = "0.15"
-lazy_static = "1.4"
-rand = "0.8"
-bytes = "1.0"
 
-[dev-dependencies]
-axum-test = "16.1"
+# Configuration
+config = "0.14"
+dotenv = "0.15"
+
+# WebSocket support
+actix-ws = "0.1"
+futures = "0.3"
+
+# Async trait support
+async-trait = "0.1"
+
+# Environment
+env_logger = "0.11"

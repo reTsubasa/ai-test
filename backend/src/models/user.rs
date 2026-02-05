@@ -1,92 +1,68 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
 use uuid::Uuid;
-use validator::Validate;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+/// User role
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum UserRole {
+    Admin,
+    Operator,
+    Viewer,
+}
+
+/// User status
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum UserStatus {
+    Active,
+    Disabled,
+    Locked,
+}
+
+/// User model
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
     pub id: Uuid,
     pub username: String,
     pub email: String,
-    pub password_hash: String,
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
-    pub is_active: bool,
+    pub full_name: Option<String>,
+    pub role: UserRole,
+    pub status: UserStatus,
+    pub last_login: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+/// Create user request
+#[derive(Debug, Deserialize)]
 pub struct CreateUserRequest {
-    #[validate(length(min = 3, max = 32))]
     pub username: String,
-
-    #[validate(email)]
     pub email: String,
-
-    #[validate(length(min = 8))]
     pub password: String,
-
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
+    pub full_name: Option<String>,
+    pub role: UserRole,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateUserResponse {
-    pub id: Uuid,
-    pub username: String,
-    pub email: String,
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
-    pub created_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+/// Update user request
+#[derive(Debug, Deserialize)]
 pub struct UpdateUserRequest {
-    #[validate(length(min = 3, max = 32))]
-    pub username: Option<String>,
-
-    #[validate(email)]
     pub email: Option<String>,
-
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
-    pub is_active: Option<bool>,
+    pub full_name: Option<String>,
+    pub role: Option<UserRole>,
+    pub status: Option<UserStatus>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateUserResponse {
-    pub id: Uuid,
-    pub username: String,
-    pub email: String,
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
-    pub is_active: bool,
-    pub updated_at: DateTime<Utc>,
+/// Update user profile request
+#[derive(Debug, Deserialize)]
+pub struct UpdateProfileRequest {
+    pub email: Option<String>,
+    pub full_name: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LoginRequest {
-    pub username: String,
-    pub password: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LoginResponse {
-    pub access_token: String,
-    pub refresh_token: String,
-    pub user: UserResponse,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UserResponse {
-    pub id: Uuid,
-    pub username: String,
-    pub email: String,
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
-    pub is_active: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+/// Change password request
+#[derive(Debug, Deserialize)]
+pub struct ChangePasswordRequest {
+    pub current_password: String,
+    pub new_password: String,
 }

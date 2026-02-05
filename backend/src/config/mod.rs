@@ -1,92 +1,115 @@
-use anyhow::Result;
+use std::env;
+
+use actix_web::web::Data;
 use serde::Deserialize;
+use sqlx::any::AnyPoolOptions;
+use sqlx::AnyPool;
+use tracing::info;
 
-#[derive(Debug, Deserialize, Clone)]
-pub struct Config {
-    pub server: ServerConfig,
-    pub database: DatabaseConfig,
-    pub jwt: JwtConfig,
-    pub app: AppConfig,
-}
+use crate::error::AppError;
 
-#[derive(Debug, Deserialize, Clone)]
-pub struct ServerConfig {
-    #[serde(default = "default_server_address")]
-    pub address: String,
-    #[serde(default = "default_server_host")]
-    pub host: String,
-    #[serde(default = "default_server_port")]
-    pub port: u16,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct DatabaseConfig {
-    #[serde(default = "default_database_url")]
-    pub url: String,
-    #[serde(default = "default_database_max_connections")]
-    pub max_connections: u32,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct JwtConfig {
-    #[serde(default = "default_jwt_secret")]
-    pub secret: String,
-    #[serde(default = "default_jwt_expiry_hours")]
-    pub expiry_hours: i64,
-}
-
-#[derive(Debug, Deserialize, Clone)]
+/// Application configuration loaded from environment variables
+#[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
-    #[serde(default = "default_app_environment")]
-    pub environment: String,
-    #[serde(default = "default_app_debug")]
-    pub debug: bool,
+    /// Server host address
+    pub server_host: String,
+
+    /// Server port
+    pub server_port: u16,
+
+    /// Application environment (development, staging, production)
+    pub app_env: String,
+
+    /// Database connection URL
+    pub database_url: String,
+
+    /// JWT secret key for token signing
+    pub jwt_secret_key: String,
+
+    /// JWT token expiration time in minutes
+    pub jwt_expiration_minutes: u64,
+
+    /// Log level (trace, debug, info, warn, error)
+    pub log_level: String,
+
+    /// VyOS API base URL
+    pub vyos_api_url: Option<String>,
+
+    /// VyOS API username
+    pub vyos_api_username: Option<String>,
+
+    /// VyOS API password
+    pub vyos_api_password: Option<String>,
 }
 
-fn default_server_address() -> String {
-    "127.0.0.1:8080".to_string()
-}
+impl AppConfig {
+    /// Load configuration from environment variables
+    pub fn from_env() -> Result<Self, AppError> {
+        dotenv::dotenv().ok();
 
-fn default_server_host() -> String {
-    "127.0.0.1".to_string()
-}
+        let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
 
-fn default_server_port() -> u16 {
-    8080
-}
-
-fn default_database_url() -> String {
-    "sqlite:data/database.db".to_string()
-}
-
-fn default_database_max_connections() -> u32 {
-    10
-}
-
-fn default_jwt_secret() -> String {
-    "default_secret_key_for_development_please_change_in_production".to_string()
-}
-
-fn default_jwt_expiry_hours() -> i64 {
-    24
-}
-
-fn default_app_environment() -> String {
-    "development".to_string()
-}
-
-fn default_app_debug() -> bool {
-    true
-}
-
-impl Config {
-    pub fn from_env() -> Result<Self> {
-        // Load configuration from environment variables using the config crate
-        let mut cfg = config::Config::builder()
-            .add_source(config::Environment::default())
-            .build()?;
-
-        // Map environment variables to expected config keys
-        cfg.try_deserialize().map_err(Into::into)
+        Ok(Self {
+            server_host: env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
+            server_port: env::var("SERVER_PORT")
+                .unwrap_or_else(|_| "8080".to_string())
+                .parse()
+                .map_err(|e| AppError::Config(format!("Invalid server port: {}", e)))?,
+            app_env: app_env.clone(),
+            database_url: env::var("DATABASE_URL")
+                .unwrap_or_else(|_| "sqlite:data/database.db".to_string()),
+            jwt_secret_key: env::var("JWT_SECRET_KEY").unwrap_or_else(|_| {
+                "default_secret_key_replace_in_production".to_string()
+            }),
+            jwt_expiration_minutes: env::var("JWT_EXPIRATION_MINUTES")
+                .unwrap_or_else(|_| "60".to_string())
+                .parse()
+                .unwrap_or(60),
+            log_level: env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string()),
+            vyos_api_url: env::var("VYOS_API_URL").ok(),
+            vyos_api_username: env::var("VYOS_API_USERNAME").ok(),
+            vyos_api_password: env::var("VYOS_API_PASSWORD").ok(),
+        })
     }
+
+    /// Get the server address in format "host:port"
+    pub fn server_address(&self) -> String {
+        format!("{}:{}", self.server_host, self.server_port)
+    }
+
+    /// Check if running in development mode
+    pub fn is_development(&self) -> bool {
+        self.app_env == "development"
+    }
+
+    /// Check if running in production mode
+    pub fn is_production(&self) -> bool {
+        self.app_env == "production"
+    }
+}
+
+/// Initialize database connection pool
+pub async fn init_database(config: &AppConfig) -> Result<AnyPool, AppError> {
+    info!("Initializing database connection...");
+
+    let max_connections = if config.is_development() { 5 } else { 10 };
+
+    let pool = AnyPoolOptions::new()
+        .max_connections(max_connections)
+        .connect(&config.database_url)
+        .await
+        .map_err(|e| AppError::Database(format!("Failed to connect to database: {}", e)))?;
+
+    info!("Database connection established successfully");
+    Ok(pool)
+}
+
+/// Initialize logging
+pub fn init_logging(config: &AppConfig) {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(&config.log_level)),
+        )
+        .init();
 }

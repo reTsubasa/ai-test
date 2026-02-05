@@ -1,95 +1,100 @@
-use axum::{
-    extract::Extension,
-    http::Method,
-    middleware,
-    routing::{get, post, put, delete},
-    Router,
-};
-use sqlx::SqlitePool;
-use std::sync::Arc;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
 mod config;
-mod models;
-mod handlers;
-mod services;
-mod middleware as app_middleware;
+mod db;
 mod error;
-mod utils;
+mod handlers;
+mod middleware;
+mod models;
+mod services;
+mod websocket;
 
-use config::Config;
+use actix_cors::Cors;
+use actix_web::{web, App, HttpServer, middleware::Logger};
+use std::env;
+use tracing::info;
 
-#[derive(Clone)]
-pub struct AppState {
-    pub db: SqlitePool,
-    pub config: Arc<Config>,
-}
+use config::{AppConfig, init_database, init_logging};
+use db::create_database;
+use error::AppResult;
+use websocket::ConnectionManager;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize logging
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            "vyos_web_backend=debug,tower_http=debug".into()
-        }))
-        .with(tracing_subscriber::fmt::layer())
-        .init();
-
+#[actix_web::main]
+async fn main() -> AppResult<()> {
     // Load configuration
-    let config = Arc::new(Config::from_env()?);
+    let config = AppConfig::from_env()?;
+
+    // Initialize logging
+    init_logging(&config);
+
+    info!("Starting VyOS Web UI Backend");
+    info!("Environment: {}", config.app_env);
+    info!("Server: {}", config.server_address());
 
     // Initialize database
-    let db_pool = SqlitePool::connect(&config.database.url).await?;
+    let pool = init_database(&config).await?;
+    let db = create_database(pool).await?;
 
-    // Run migrations
-    sqlx::migrate!("./migrations").run(&db_pool).await?;
+    // Create WebSocket connection manager
+    let connection_manager = ConnectionManager::new();
 
-    // Create application state
-    let app_state = AppState {
-        db: db_pool,
-        config,
-    };
+    // Build the HTTP server
+    let bind_address = config.server_address();
+    let server = HttpServer::new(move || {
+        // Configure CORS
+        let cors = if config.is_development() {
+            Cors::permissive()
+        } else {
+            Cors::default()
+                .allowed_origin("https://your-domain.com")
+                .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+                .allowed_headers(vec!["Authorization", "Content-Type"])
+                .max_age(3600)
+        };
 
-    // Build our application with a single route
-    let app = Router::new()
-        // Health check
-        .route("/health", get(handlers::health::health_check))
+        App::new()
+            .app_data(web::Data::new(config.clone()))
+            .app_data(db.clone())
+            .app_data(web::Data::new(connection_manager.clone()))
+            .wrap(cors)
+            .wrap(Logger::default())
+            .service(
+                web::scope("/api")
+                    // Health check endpoints
+                    .route("/health", web::get().to(handlers::health::health_check))
+                    .route("/health/detailed", web::get().to(handlers::health::detailed_health_check))
+                    // Authentication endpoints
+                    .route("/auth/login", web::post().to(handlers::auth::login))
+                    .route("/auth/logout", web::post().to(handlers::auth::logout))
+                    .route("/auth/refresh", web::post().to(handlers::auth::refresh_token))
+                    .route("/auth/validate", web::post().to(handlers::auth::validate_token))
+                    // User endpoints
+                    .route("/users/me", web::get().to(handlers::user::get_profile))
+                    .route("/users/me", web::put().to(handlers::user::update_profile))
+                    .route("/users/me/password", web::post().to(handlers::user::change_password))
+                    .route("/users", web::get().to(handlers::user::list_users))
+                    .route("/users", web::post().to(handlers::user::create_user))
+                    .route("/users/{id}", web::put().to(handlers::user::update_user))
+                    .route("/users/{id}", web::delete().to(handlers::user::delete_user))
+                    // Network endpoints
+                    .route("/network/interfaces", web::get().to(handlers::network::get_interfaces))
+                    .route("/network/interfaces/{id}", web::get().to(handlers::network::get_interface_details))
+                    .route("/network/interfaces/{id}/configure", web::post().to(handlers::network::configure_interface))
+                    .route("/network/routes", web::get().to(handlers::network::get_routing_table))
+                    .route("/network/routes", web::post().to(handlers::network::add_route))
+                    .route("/network/routes/{id}", web::delete().to(handlers::network::delete_route))
+                    .route("/network/firewall/rules", web::get().to(handlers::network::get_firewall_rules))
+                    .route("/network/firewall/rules", web::post().to(handlers::network::add_firewall_rule))
+                    .route("/network/firewall/rules/{id}", web::delete().to(handlers::network::delete_firewall_rule))
+            )
+            .route("/ws", web::get().to(websocket::websocket_handler))
+            .route("/ws/info", web::get().to(websocket::ws_info))
+    })
+    .bind(&bind_address)?;
 
-        // Auth routes
-        .route("/api/v1/auth/login", post(handlers::auth::login))
-        .route("/api/v1/auth/register", post(handlers::auth::register))
-        .route("/api/v1/auth/refresh", post(handlers::auth::refresh))
-        .route("/api/v1/auth/me", get(handlers::auth::get_current_user))
+    info!("Server listening on {}", bind_address);
 
-        // User routes
-        .route("/api/v1/users", get(handlers::user::get_users))
-        .route("/api/v1/users", post(handlers::user::create_user))
-        .route("/api/v1/users/:id", get(handlers::user::get_user))
-        .route("/api/v1/users/:id", put(handlers::user::update_user))
-        .route("/api/v1/users/:id", delete(handlers::user::delete_user))
+    server.run().await?;
 
-        // Network routes
-        .route("/api/v1/network/interfaces", get(handlers::network::get_interfaces))
-        .route("/api/v1/network/interfaces", post(handlers::network::create_interface))
-        .route("/api/v1/network/interfaces/:id", get(handlers::network::get_interface))
-        .route("/api/v1/network/interfaces/:id", put(handlers::network::update_interface))
-        .route("/api/v1/network/interfaces/:id", delete(handlers::network::delete_interface))
-
-        // Apply middleware
-        .layer(middleware::from_fn(app_middleware::auth::auth_middleware))
-        .layer(
-            tower_http::cors::CorsLayer::new()
-                .allow_origin(tower_http::cors::Any)
-                .allow_methods(vec![Method::GET, Method::POST, Method::PUT, Method::DELETE])
-                .allow_headers(tower_http::cors::Any)
-        )
-        .layer(Extension(app_state));
-
-    // Run our application with the given configuration
-    let listener = tokio::net::TcpListener::bind(&config.server.address).await?;
-    tracing::debug!("Listening on {}", listener.local_addr()?);
-
-    axum::serve(listener, app).await?;
+    info!("Server shutting down");
 
     Ok(())
 }

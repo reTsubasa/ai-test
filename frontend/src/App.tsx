@@ -9,6 +9,8 @@ import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { NetworkConfigPage } from './pages/network/NetworkConfigPage';
 import { MonitoringPage } from './pages/monitoring/MonitoringPage';
 import { UserManagementPage } from './pages/users/UserManagementPage';
+import { NodesPage } from './pages/nodes/NodesPage';
+import { NodeDetailPage } from './pages/nodes/NodeDetailPage';
 
 function App() {
   return (
@@ -25,6 +27,8 @@ function App() {
         >
           <Route index element={<DashboardPage />} />
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="nodes" element={<NodesPage />} />
+          <Route path="nodes/:id" element={<NodeDetailPage />} />
           <Route path="network" element={<NetworkConfigPage />} />
           <Route path="monitoring" element={<MonitoringPage />} />
           <Route path="users" element={<UserManagementPage />} />
