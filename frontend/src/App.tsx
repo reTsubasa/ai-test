@@ -1,60 +1,37 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from './components/common/ProtectedRoute';
-import LoginPage from './pages/auth/LoginPage';
-import DashboardPage from './pages/dashboard/DashboardPage';
-import NetworkConfigPage from './pages/network/NetworkConfigPage';
-import MonitoringPage from './pages/monitoring/MonitoringPage';
-import UserManagementPage from './pages/users/UserManagementPage';
-import Layout from './components/layout/Layout';
+import { Routes, Route } from 'react-router-dom';
+import { Layout } from './components/layout/Layout';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { ProtectedRoute } from './components/common/ProtectedRoute';
 
-const App: React.FC = () => {
+// Pages
+import { LoginPage } from './pages/auth/LoginPage';
+import { DashboardPage } from './pages/dashboard/DashboardPage';
+import { NetworkConfigPage } from './pages/network/NetworkConfigPage';
+import { MonitoringPage } from './pages/monitoring/MonitoringPage';
+import { UserManagementPage } from './pages/users/UserManagementPage';
+
+function App() {
   return (
-    <AuthProvider>
-      <div className="App">
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={
+    <ThemeProvider defaultTheme="dark" storageKey="vyos-ui-theme">
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/*"
+          element={
             <ProtectedRoute>
-              <Layout>
-                <DashboardPage />
-              </Layout>
+              <Layout />
             </ProtectedRoute>
-          } />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Layout>
-                <DashboardPage />
-              </Layout>
-            </ProtectedRoute>
-          } />
-          <Route path="/network-config" element={
-            <ProtectedRoute>
-              <Layout>
-                <NetworkConfigPage />
-              </Layout>
-            </ProtectedRoute>
-          } />
-          <Route path="/monitoring" element={
-            <ProtectedRoute>
-              <Layout>
-                <MonitoringPage />
-              </Layout>
-            </ProtectedRoute>
-          } />
-          <Route path="/users" element={
-            <ProtectedRoute>
-              <Layout>
-                <UserManagementPage />
-              </Layout>
-            </ProtectedRoute>
-          } />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </div>
-    </AuthProvider>
+          }
+        >
+          <Route index element={<DashboardPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="network" element={<NetworkConfigPage />} />
+          <Route path="monitoring" element={<MonitoringPage />} />
+          <Route path="users" element={<UserManagementPage />} />
+        </Route>
+      </Routes>
+    </ThemeProvider>
   );
-};
+}
 
 export default App;

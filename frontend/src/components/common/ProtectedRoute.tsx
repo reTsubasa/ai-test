@@ -1,19 +1,13 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../../stores/authStore';
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-}
+export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const location = useLocation();
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
-};
-
-export default ProtectedRoute;
+  return <>{children}</>;
+}
