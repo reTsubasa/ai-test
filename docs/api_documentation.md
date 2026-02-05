@@ -1,1091 +1,1449 @@
-# VyOS Web UI API 文档
+# VyOS Web UI - API Documentation
 
-## 目录
-1. [概述](#概述)
-2. [认证](#认证)
-3. [错误处理](#错误处理)
-4. [用户管理 API](#用户管理-api)
-5. [网络配置 API](#网络配置-api)
-6. [监控 API](#监控-api)
-7. [系统设置 API](#系统设置-api)
-8. [WebSocket 接口](#websocket-接口)
+## Table of Contents
 
-## 概述
+- [Overview](#overview)
+- [Authentication](#authentication)
+- [Base URL](#base-url)
+- [Response Format](#response-format)
+- [Error Codes](#error-codes)
+- [API Endpoints](#api-endpoints)
+  - [Health Check](#health-check)
+  - [Authentication](#authentication-1)
+  - [User Management](#user-management)
+  - [Network Configuration](#network-configuration)
+  - [Monitoring](#monitoring)
+  - [WebSocket](#websocket)
 
-### 基础信息
-- **基础 URL**: `https://your-domain.com/api/v1`
-- **协议**: HTTPS
-- **内容类型**: `application/json`
-- **字符编码**: UTF-8
-- **版本**: v1
+---
 
-### 请求格式
-所有请求必须包含适当的 HTTP 头部：
-```
-Content-Type: application/json
-Accept: application/json
-Authorization: Bearer {jwt_token}
-```
-
-### 响应格式
-成功的响应遵循以下结构：
-```json
-{
-  "success": true,
-  "data": {},
-  "message": "Operation successful",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-错误响应遵循以下结构：
-```json
-{
-  "success": false,
-  "error": {
-    "code": "INVALID_INPUT",
-    "message": "Validation error occurred",
-    "details": []
-  },
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-## 认证
-
-### JWT 认证
-所有 API 端点都需要 JWT 认证，除了认证相关的端点。
-
-#### 登录
-```
-POST /auth/login
-```
-
-**请求体**:
-```json
-{
-  "username": "admin",
-  "password": "securepassword"
-}
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "user": {
-      "id": "123e4567-e89b-12d3-a456-426614174000",
-      "username": "admin",
-      "email": "admin@example.com",
-      "roles": ["admin", "user"],
-      "permissions": ["*"]
-    }
-  },
-  "message": "Login successful",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-**HTTP 状态码**:
-- `200`: 登录成功
-- `400`: 输入验证失败
-- `401`: 凭据无效
-- `429`: 登录尝试过多
-
-#### 注册
-```
-POST /auth/register
-```
-
-**请求体**:
-```json
-{
-  "username": "newuser",
-  "email": "user@example.com",
-  "password": "SecurePassword123!",
-  "first_name": "John",
-  "last_name": "Doe"
-}
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "id": "123e4567-e89b-12d3-a456-426614174001",
-    "username": "newuser",
-    "email": "user@example.com",
-    "created_at": "2023-12-01T10:00:00Z"
-  },
-  "message": "User registered successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-**HTTP 状态码**:
-- `201`: 注册成功
-- `400`: 输入验证失败
-- `409`: 用户名或邮箱已存在
-
-#### 刷新令牌
-```
-POST /auth/refresh
-```
-
-**请求体**:
-```json
-{
-  "refresh_token": "refresh_token_here"
-}
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "access_token": "new_access_token",
-    "refresh_token": "new_refresh_token"
-  },
-  "message": "Tokens refreshed successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-#### 获取当前用户信息
-```
-GET /auth/me
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
-    "username": "admin",
-    "email": "admin@example.com",
-    "roles": ["admin"],
-    "permissions": ["*"],
-    "created_at": "2023-12-01T10:00:00Z",
-    "last_login_at": "2023-12-01T09:00:00Z"
-  },
-  "message": "User data retrieved successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-## 错误处理
-
-### 错误代码
-
-| 代码 | HTTP 状态 | 描述 |
-|------|-----------|------|
-| `UNAUTHORIZED` | 401 | 未认证或令牌无效 |
-| `FORBIDDEN` | 403 | 无权限执行操作 |
-| `NOT_FOUND` | 404 | 资源不存在 |
-| `VALIDATION_ERROR` | 400 | 输入验证失败 |
-| `DUPLICATE_ENTRY` | 409 | 资源已存在 |
-| `RATE_LIMITED` | 429 | 请求过于频繁 |
-| `INTERNAL_ERROR` | 500 | 服务器内部错误 |
-
-### 通用错误响应
-```json
-{
-  "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "The provided input data is invalid",
-    "details": [
-      {
-        "field": "username",
-        "message": "Username must be between 3 and 32 characters"
-      }
-    ]
-  },
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-## 用户管理 API
-
-### 获取用户列表
-```
-GET /users?page=1&limit=10&sort=username&order=asc&search=admin
-```
-
-**参数**:
-- `page`: 页码 (默认: 1)
-- `limit`: 每页数量 (默认: 10, 最大: 100)
-- `sort`: 排序字段 (username, email, created_at)
-- `order`: 排序顺序 (asc, desc)
-- `search`: 搜索关键词
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "users": [
-      {
-        "id": "123e4567-e89b-12d3-a456-426614174000",
-        "username": "admin",
-        "email": "admin@example.com",
-        "roles": ["admin"],
-        "is_active": true,
-        "created_at": "2023-12-01T10:00:00Z",
-        "updated_at": "2023-12-01T10:00:00Z"
-      }
-    ],
-    "pagination": {
-      "current_page": 1,
-      "total_pages": 5,
-      "total_items": 50,
-      "has_next": true,
-      "has_prev": false
-    }
-  },
-  "message": "Users retrieved successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-### 获取特定用户
-```
-GET /users/{user_id}
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
-    "username": "admin",
-    "email": "admin@example.com",
-    "first_name": "Admin",
-    "last_name": "User",
-    "roles": ["admin"],
-    "permissions": ["*"],
-    "is_active": true,
-    "created_at": "2023-12-01T10:00:00Z",
-    "updated_at": "2023-12-01T10:00:00Z",
-    "last_login_at": "2023-12-01T09:00:00Z"
-  },
-  "message": "User retrieved successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-### 创建用户
-```
-POST /users
-```
-
-**请求体**:
-```json
-{
-  "username": "newuser",
-  "email": "newuser@example.com",
-  "password": "SecurePassword123!",
-  "first_name": "New",
-  "last_name": "User",
-  "roles": ["user"],
-  "is_active": true
-}
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "id": "123e4567-e89b-12d3-a456-426614174002",
-    "username": "newuser",
-    "email": "newuser@example.com",
-    "first_name": "New",
-    "last_name": "User",
-    "roles": ["user"],
-    "is_active": true,
-    "created_at": "2023-12-01T10:00:00Z"
-  },
-  "message": "User created successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-### 更新用户
-```
-PUT /users/{user_id}
-```
-
-**请求体** (全部可选):
-```json
-{
-  "username": "updateduser",
-  "email": "updated@example.com",
-  "first_name": "Updated",
-  "last_name": "User",
-  "roles": ["admin", "user"],
-  "is_active": true
-}
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
-    "username": "updateduser",
-    "email": "updated@example.com",
-    "first_name": "Updated",
-    "last_name": "User",
-    "roles": ["admin", "user"],
-    "is_active": true,
-    "updated_at": "2023-12-01T10:00:00Z"
-  },
-  "message": "User updated successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-### 删除用户
-```
-DELETE /users/{user_id}
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "message": "User deleted successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-### 禁用/启用用户
-```
-PATCH /users/{user_id}/toggle-status
-```
-
-**请求体**:
-```json
-{
-  "is_active": false
-}
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
-    "is_active": false
-  },
-  "message": "User status updated successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-## 网络配置 API
-
-### 网络接口
-
-#### 获取接口列表
-```
-GET /network/interfaces
-```
-
-**查询参数**:
-- `type`: 接口类型过滤 (ethernet, vlan, bond, loopback)
-- `status`: 接口状态过滤 (up, down)
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "123e4567-e89b-12d3-a456-426614174003",
-      "name": "eth0",
-      "type": "ethernet",
-      "ip_address": "192.168.1.1",
-      "subnet_mask": "255.255.255.0",
-      "gateway": "192.168.1.254",
-      "mac_address": "00:11:22:33:44:55",
-      "status": "up",
-      "enabled": true,
-      "description": "Primary network interface",
-      "created_at": "2023-12-01T10:00:00Z",
-      "updated_at": "2023-12-01T10:00:00Z"
-    }
-  ],
-  "message": "Interfaces retrieved successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-#### 获取特定接口
-```
-GET /network/interfaces/{interface_id}
-```
-
-#### 创建接口
-```
-POST /network/interfaces
-```
-
-**请求体**:
-```json
-{
-  "name": "eth1",
-  "type": "ethernet",
-  "ip_address": "10.0.0.1",
-  "subnet_mask": "255.255.255.0",
-  "gateway": "10.0.0.254",
-  "description": "Secondary interface",
-  "enabled": true
-}
-```
-
-#### 更新接口
-```
-PUT /network/interfaces/{interface_id}
-```
-
-**请求体** (部分更新):
-```json
-{
-  "ip_address": "10.0.0.2",
-  "description": "Updated secondary interface"
-}
-```
-
-#### 删除接口
-```
-DELETE /network/interfaces/{interface_id}
-```
-
-#### 启用/禁用接口
-```
-POST /network/interfaces/{interface_id}/enable
-POST /network/interfaces/{interface_id}/disable
-```
-
-### 路由配置
-
-#### 获取路由表
-```
-GET /network/routes
-```
-
-**查询参数**:
-- `protocol`: 协议过滤 (static, dynamic, bgp, ospf)
-- `destination`: 目标网络过滤
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "123e4567-e89b-12d3-a456-426614174004",
-      "destination": "10.0.0.0/24",
-      "gateway": "192.168.1.1",
-      "interface": "eth0",
-      "metric": 1,
-      "protocol": "static",
-      "type": "unicast",
-      "created_at": "2023-12-01T10:00:00Z"
-    }
-  ],
-  "message": "Routes retrieved successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-#### 创建静态路由
-```
-POST /network/routes
-```
-
-**请求体**:
-```json
-{
-  "destination": "172.16.0.0/16",
-  "gateway": "192.168.1.1",
-  "interface": "eth0",
-  "metric": 5,
-  "description": "Route to internal network"
-}
-```
-
-#### 删除路由
-```
-DELETE /network/routes/{route_id}
-```
-
-### 防火墙配置
-
-#### 获取防火墙规则
-```
-GET /network/firewall/rules
-```
-
-**查询参数**:
-- `direction`: 方向过滤 (input, output, forward)
-- `action`: 动作过滤 (accept, drop, reject)
-- `interface`: 接口过滤
-- `protocol`: 协议过滤 (tcp, udp, icmp)
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "123e4567-e89b-12d3-a456-426614174005",
-      "name": "Allow SSH",
-      "sequence": 10,
-      "action": "accept",
-      "protocol": "tcp",
-      "source": "any",
-      "destination": "any",
-      "source_port": null,
-      "destination_port": 22,
-      "interface": "eth0",
-      "enabled": true,
-      "description": "Allow SSH access",
-      "created_by": "admin",
-      "created_at": "2023-12-01T10:00:00Z",
-      "updated_at": "2023-12-01T10:00:00Z"
-    }
-  ],
-  "message": "Firewall rules retrieved successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-#### 创建防火墙规则
-```
-POST /network/firewall/rules
-```
-
-**请求体**:
-```json
-{
-  "name": "Block Malicious IPs",
-  "sequence": 5,
-  "action": "drop",
-  "protocol": "all",
-  "source": "203.0.113.0/24",
-  "destination": "any",
-  "interface": "eth0",
-  "enabled": true,
-  "description": "Block known malicious IP range"
-}
-```
-
-#### 更新防火墙规则
-```
-PUT /network/firewall/rules/{rule_id}
-```
-
-#### 删除防火墙规则
-```
-DELETE /network/firewall/rules/{rule_id}
-```
-
-### DHCP 配置
-
-#### 获取 DHCP 作用域
-```
-GET /network/dhcp/scopes
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "123e4567-e89b-12d3-a456-426614174006",
-      "name": "LAN_DHCP",
-      "network": "192.168.1.0/24",
-      "range_start": "192.168.1.100",
-      "range_end": "192.168.1.200",
-      "gateway": "192.168.1.1",
-      "dns_servers": ["8.8.8.8", "1.1.1.1"],
-      "lease_time": 86400,
-      "enabled": true,
-      "interface": "eth0",
-      "created_at": "2023-12-01T10:00:00Z",
-      "updated_at": "2023-12-01T10:00:00Z"
-    }
-  ],
-  "message": "DHCP scopes retrieved successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-#### 创建 DHCP 作用域
-```
-POST /network/dhcp/scopes
-```
-
-**请求体**:
-```json
-{
-  "name": "Guest_Network",
-  "network": "192.168.2.0/24",
-  "range_start": "192.168.2.100",
-  "range_end": "192.168.2.200",
-  "gateway": "192.168.2.1",
-  "dns_servers": ["8.8.8.8", "1.1.1.1"],
-  "lease_time": 3600,
-  "enabled": true,
-  "interface": "eth1"
-}
-```
-
-## 监控 API
-
-### 系统指标
-
-#### 获取系统指标
-```
-GET /monitoring/system-metrics?node=primary&interval=5min&start_time=2023-12-01T09:00:00Z&end_time=2023-12-01T10:00:00Z
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "node": "primary",
-    "metrics": [
-      {
-        "timestamp": "2023-12-01T09:00:00Z",
-        "cpu_usage": 15.5,
-        "memory_usage": 42.3,
-        "disk_usage": 65.2,
-        "load_average": [0.12, 0.15, 0.10],
-        "uptime": "4 days, 12:34:56"
-      }
-    ],
-    "summary": {
-      "avg_cpu_usage": 18.2,
-      "avg_memory_usage": 45.6,
-      "peak_memory_usage": 52.1
-    }
-  },
-  "message": "System metrics retrieved successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-### 网络指标
-
-#### 获取网络指标
-```
-GET /monitoring/network-metrics?interface=eth0&interval=1min&start_time=2023-12-01T09:00:00Z
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "interface": "eth0",
-    "metrics": [
-      {
-        "timestamp": "2023-12-01T09:00:00Z",
-        "rx_bytes": 1234567890,
-        "tx_bytes": 987654321,
-        "rx_packets": 12345,
-        "tx_packets": 9876,
-        "errors": 0,
-        "dropped": 0
-      }
-    ],
-    "summary": {
-      "rx_rate_bps": 1234567,
-      "tx_rate_bps": 987654,
-      "utilization": 5.2
-    }
-  },
-  "message": "Network metrics retrieved successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-### 告警管理
-
-#### 获取告警
-```
-GET /monitoring/alerts?status=active&severity=critical&limit=20&page=1
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "alerts": [
-      {
-        "id": "123e4567-e89b-12d3-a456-426614174007",
-        "title": "High CPU Usage",
-        "description": "CPU usage exceeded 80% threshold",
-        "severity": "critical",
-        "status": "active",
-        "source": "system_monitor",
-        "node": "primary",
-        "timestamp": "2023-12-01T09:30:00Z",
-        "resolved_at": null,
-        "acknowledged_at": null,
-        "acknowledged_by": null
-      }
-    ],
-    "pagination": {
-      "current_page": 1,
-      "total_pages": 1,
-      "total_items": 1
-    }
-  },
-  "message": "Alerts retrieved successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-#### 解决告警
-```
-POST /monitoring/alerts/{alert_id}/resolve
-```
-
-**请求体**:
-```json
-{
-  "resolution_notes": "Investigated and resolved by increasing resources"
-}
-```
-
-#### 获取告警规则
-```
-GET /monitoring/alert-rules
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "123e4567-e89b-12d3-a456-426614174008",
-      "name": "CPU Usage Threshold",
-      "metric_type": "system.cpu.usage",
-      "condition": ">",
-      "threshold": 80,
-      "window": "5m",
-      "severity": "warning",
-      "enabled": true,
-      "notifications": {
-        "email": ["admin@example.com"],
-        "webhook": "https://hooks.example.com/alert"
-      },
-      "created_at": "2023-12-01T08:00:00Z",
-      "updated_at": "2023-12-01T08:00:00Z"
-    }
-  ],
-  "message": "Alert rules retrieved successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-### 配置历史
-
-#### 获取配置历史
-```
-GET /monitoring/config-history?resource_type=network.interface&resource_id=123e4567-e89b-12d3-a456-426614174003&limit=10
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "123e4567-e89b-12d3-a456-426614174009",
-      "resource_type": "network.interface",
-      "resource_id": "123e4567-e89b-12d3-a456-426614174003",
-      "action": "update",
-      "user_id": "123e4567-e89b-12d3-a456-426614174000",
-      "old_values": {
-        "ip_address": "192.168.1.100"
-      },
-      "new_values": {
-        "ip_address": "192.168.1.101"
-      },
-      "applied_successfully": true,
-      "rollback_possible": true,
-      "timestamp": "2023-12-01T09:00:00Z"
-    }
-  ],
-  "message": "Config history retrieved successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-## 系统设置 API
-
-### 系统信息
-
-#### 获取系统信息
-```
-GET /system/info
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "version": "1.0.0",
-    "build_date": "2023-12-01T08:00:00Z",
-    "uptime": "4 days, 12:34:56",
-    "hostname": "vyos-web-ui-01",
-    "os_info": {
-      "platform": "linux",
-      "arch": "x86_64",
-      "version": "Ubuntu 20.04.6 LTS"
-    },
-    "database": {
-      "type": "sqlite",
-      "version": "3.37.2",
-      "size_mb": 12.5
-    },
-    "feature_flags": {
-      "user_management": true,
-      "network_config": true,
-      "monitoring": true,
-      "backup_restore": true
-    }
-  },
-  "message": "System information retrieved successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-### 配置管理
-
-#### 获取系统配置
-```
-GET /system/config
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "general": {
-      "site_name": "VyOS Web UI",
-      "timezone": "UTC",
-      "date_format": "YYYY-MM-DD",
-      "time_format": "HH:mm:ss"
-    },
-    "security": {
-      "max_login_attempts": 5,
-      "lockout_duration_mins": 15,
-      "password_min_length": 8,
-      "session_timeout_mins": 30
-    },
-    "monitoring": {
-      "refresh_interval_ms": 5000,
-      "retention_days": 30,
-      "metrics_enabled": true
-    }
-  },
-  "message": "System configuration retrieved successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-#### 更新系统配置
-```
-PUT /system/config
-```
-
-**请求体**:
-```json
-{
-  "security": {
-    "max_login_attempts": 3,
-    "lockout_duration_mins": 30
-  }
-}
-```
-
-### 备份和恢复
+## Overview
 
-#### 创建备份
-```
-POST /system/backup
-```
-
-**请求体**:
-```json
-{
-  "include": ["users", "network_config", "monitoring_data"],
-  "exclude": ["logs"],
-  "notes": "Weekly backup before major update"
-}
-```
-
-**响应**:
-```json
-{
-  "success": true,
-  "data": {
-    "backup_id": "backup-20231201-100000-abc123",
-    "filename": "vyos-backup-20231201-100000.zip",
-    "size_bytes": 1048576,
-    "created_at": "2023-12-01T10:00:00Z",
-    "expires_at": "2024-03-01T10:00:00Z"
-  },
-  "message": "Backup created successfully",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-#### 获取备份列表
-```
-GET /system/backups
-```
-
-#### 下载备份
-```
-GET /system/backups/{backup_id}/download
-```
-
-### 系统维护
-
-#### 清理日志
-```
-POST /system/logs/cleanup
-```
-
-**请求体**:
-```json
-{
-  "older_than_days": 30,
-  "log_types": ["application", "access", "error"]
-}
-```
-
-#### 重启服务
-```
-POST /system/restart
-```
-
-**请求体**:
-```json
-{
-  "reason": "Scheduled maintenance"
-}
-```
+The VyOS Web UI API provides a RESTful interface for managing VyOS network devices. All API endpoints return JSON responses and support standard HTTP methods (GET, POST, PUT, DELETE).
 
-**重要**: 此操作需要特殊权限
+### Key Features
 
-## WebSocket 接口
+- JWT-based authentication
+- Role-based access control (RBAC)
+- Real-time updates via WebSocket
+- Comprehensive error handling
+- Support for both single-node and multi-node scenarios
 
-### 实时监控数据
+---
 
-#### 连接
-WebSocket 端点: `wss://your-domain.com/ws/monitoring`
+## Base URL
 
-#### 订阅消息
-```json
-{
-  "type": "subscribe",
-  "channel": "system_metrics",
-  "filters": {
-    "node": "primary",
-    "metrics": ["cpu", "memory", "disk"]
-  }
-}
-```
+### Development
 
-#### 取消订阅消息
-```json
-{
-  "type": "unsubscribe",
-  "channel": "system_metrics"
-}
 ```
-
-#### 实时数据推送
-服务器将定期推送数据：
-```json
-{
-  "type": "data",
-  "channel": "system_metrics",
-  "timestamp": "2023-12-01T10:00:05Z",
-  "payload": {
-    "node": "primary",
-    "cpu_usage": 22.5,
-    "memory_usage": 48.2,
-    "disk_usage": 67.8
-  }
-}
+http://localhost:8080/api
 ```
 
-### 系统事件
+### Production
 
-#### 订阅系统事件
-```json
-{
-  "type": "subscribe",
-  "channel": "system_events",
-  "filters": {
-    "event_types": ["config_applied", "alert_generated", "service_restart"]
-  }
-}
 ```
-
-### 连接管理
-
-客户端需要处理以下 WebSocket 事件：
-
-- `onopen`: 连接建立
-- `onmessage`: 接收数据
-- `onclose`: 连接关闭
-- `onerror`: 连接错误
-
-建议实现自动重连机制：
-
-```javascript
-let ws;
-function connect() {
-  ws = new WebSocket('wss://your-domain.com/ws/monitoring');
-  ws.onopen = () => console.log('Connected');
-  ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    // 处理收到的数据
-  };
-  ws.onclose = () => {
-    // 5秒后尝试重连
-    setTimeout(connect, 5000);
-  };
-}
-connect();
+https://your-domain.com/api
 ```
 
 ---
 
-**注意**: 所有 API 调用都需要有效的 JWT 认证令牌（除了认证相关端点）。
+## Authentication
+
+### JWT Token
+
+The API uses JSON Web Tokens (JWT) for authentication. Include the token in the `Authorization` header:
+
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+### Token Lifecycle
+
+| Token Type | Default Expiration | Description |
+|------------|-------------------|-------------|
+| Access Token | 60 minutes | Used for API authentication |
+| Refresh Token | 7 days | Used to obtain new access tokens |
+
+---
+
+## Response Format
+
+All API responses follow a consistent format:
+
+### Success Response
+
+```json
+{
+  "data": { ... },
+  "message": "Success message"
+}
+```
+
+### Error Response
+
+```json
+{
+  "error": "Error message",
+  "status_code": 400,
+  "details": { ... }
+}
+```
+
+---
+
+## Error Codes
+
+| Status Code | Error Type | Description |
+|-------------|------------|-------------|
+| 200 | OK | Request successful |
+| 201 | Created | Resource created successfully |
+| 202 | Accepted | Request accepted for processing |
+| 400 | Bad Request | Invalid request parameters |
+| 401 | Unauthorized | Authentication required or invalid |
+| 403 | Forbidden | User lacks required permissions |
+| 404 | Not Found | Resource not found |
+| 409 | Conflict | Resource already exists |
+| 422 | Validation Error | Input validation failed |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Server Error | Server error occurred |
+| 502 | Bad Gateway | External service error |
+| 503 | Service Unavailable | Service temporarily unavailable |
+
+---
+
+## API Endpoints
+
+### Health Check
+
+#### GET /health
+
+Basic health check endpoint. Returns system status and version.
+
+**Authentication:** Not required
+
+**Response:**
+
+```json
+{
+  "status": "healthy",
+  "version": "0.1.0",
+  "database": "connected"
+}
+```
+
+#### GET /health/detailed
+
+Detailed health check with component status.
+
+**Authentication:** Not required
+
+**Response:**
+
+```json
+{
+  "status": "healthy",
+  "version": "0.1.0",
+  "components": {
+    "database": {
+      "status": "connected",
+      "connection_pool": "5/10"
+    },
+    "websocket": {
+      "status": "active",
+      "connections": 3
+    }
+  }
+}
+```
+
+---
+
+### Authentication
+
+#### POST /auth/login
+
+Authenticate a user and receive access tokens.
+
+**Authentication:** Not required
+
+**Request Body:**
+
+```json
+{
+  "username": "admin",
+  "password": "admin123"
+}
+```
+
+**Response:**
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user_id": "uuid-user-id",
+  "username": "admin",
+  "expires_in": 3600
+}
+```
+
+**Field Requirements:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| username | string | Yes | User login name (3-50 characters) |
+| password | string | Yes | User password (minimum 6 characters) |
+
+#### POST /auth/logout
+
+Logout the current user and invalidate the session.
+
+**Authentication:** Required
+
+**Response:**
+
+```json
+{
+  "message": "Logged out successfully"
+}
+```
+
+#### POST /auth/refresh
+
+Refresh an access token using a refresh token.
+
+**Authentication:** Required
+
+**Request Body:**
+
+```json
+{
+  "refresh_token": "your-refresh-token"
+}
+```
+
+**Response:**
+
+```json
+{
+  "token": "new-access-token",
+  "user_id": "uuid-user-id",
+  "username": "admin",
+  "expires_in": 3600
+}
+```
+
+#### POST /auth/validate
+
+Validate the current access token.
+
+**Authentication:** Required
+
+**Response:**
+
+```json
+{
+  "valid": true,
+  "user_id": "uuid-user-id",
+  "username": "admin",
+  "expires_at": 1709251200
+}
+```
+
+---
+
+### User Management
+
+#### GET /users/me
+
+Get the current user's profile.
+
+**Authentication:** Required
+
+**Permissions:** `users.read`
+
+**Response:**
+
+```json
+{
+  "id": "uuid-user-id",
+  "username": "admin",
+  "email": "admin@example.com",
+  "full_name": "System Administrator",
+  "role": "admin",
+  "status": "active",
+  "last_login": "2025-01-15T10:30:00Z",
+  "created_at": "2025-01-01T00:00:00Z",
+  "updated_at": "2025-01-15T10:30:00Z"
+}
+```
+
+#### PUT /users/me
+
+Update the current user's profile.
+
+**Authentication:** Required
+
+**Permissions:** `users.write`
+
+**Request Body:**
+
+```json
+{
+  "email": "newemail@example.com",
+  "full_name": "Updated Name"
+}
+```
+
+**Response:**
+
+```json
+{
+  "id": "uuid-user-id",
+  "username": "admin",
+  "email": "newemail@example.com",
+  "full_name": "Updated Name",
+  "role": "admin",
+  "status": "active",
+  "created_at": "2025-01-01T00:00:00Z",
+  "updated_at": "2025-01-16T14:20:00Z"
+}
+```
+
+#### POST /users/me/password
+
+Change the current user's password.
+
+**Authentication:** Required
+
+**Request Body:**
+
+```json
+{
+  "current_password": "oldpassword",
+  "new_password": "newpassword123"
+}
+```
+
+**Response:**
+
+```json
+{
+  "message": "Password changed successfully"
+}
+```
+
+#### GET /users
+
+List all users (admin only).
+
+**Authentication:** Required
+
+**Permissions:** `users.read`, `users.delete` (for full details)
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| page | integer | 1 | Page number |
+| limit | integer | 20 | Items per page |
+| role | string | - | Filter by role |
+| status | string | - | Filter by status |
+
+**Response:**
+
+```json
+{
+  "users": [
+    {
+      "id": "uuid-user-id",
+      "username": "admin",
+      "email": "admin@example.com",
+      "full_name": "System Administrator",
+      "role": "admin",
+      "status": "active",
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "limit": 20
+}
+```
+
+#### POST /users
+
+Create a new user (admin only).
+
+**Authentication:** Required
+
+**Permissions:** `users.write`
+
+**Request Body:**
+
+```json
+{
+  "username": "newuser",
+  "email": "newuser@example.com",
+  "password": "password123",
+  "full_name": "New User",
+  "role": "operator"
+}
+```
+
+**Response:**
+
+```json
+{
+  "id": "uuid-new-user-id",
+  "username": "newuser",
+  "email": "newuser@example.com",
+  "full_name": "New User",
+  "role": "operator",
+  "status": "active",
+  "created_at": "2025-01-16T10:00:00Z"
+}
+```
+
+#### PUT /users/{id}
+
+Update a user (admin only).
+
+**Authentication:** Required
+
+**Permissions:** `users.write`
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | string (UUID) | Yes | User ID |
+
+**Request Body:**
+
+```json
+{
+  "email": "updated@example.com",
+  "role": "admin",
+  "status": "disabled"
+}
+```
+
+**Response:**
+
+```json
+{
+  "id": "uuid-user-id",
+  "username": "newuser",
+  "email": "updated@example.com",
+  "role": "admin",
+  "status": "disabled",
+  "updated_at": "2025-01-16T11:00:00Z"
+}
+```
+
+#### DELETE /users/{id}
+
+Delete a user (admin only).
+
+**Authentication:** Required
+
+**Permissions:** `users.delete`
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | string (UUID) | Yes | User ID |
+
+**Response:**
+
+```json
+{
+  "message": "User deleted successfully"
+}
+```
+
+---
+
+### Network Configuration
+
+#### GET /network/interfaces
+
+List all network interfaces.
+
+**Authentication:** Required
+
+**Permissions:** `config.read`
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| node_id | string (UUID) | - | Filter by node ID |
+| type | string | - | Filter by interface type |
+| status | string | - | Filter by status |
+
+**Response:**
+
+```json
+{
+  "interfaces": [
+    {
+      "id": "uuid-interface-id",
+      "name": "eth0",
+      "description": "Primary Ethernet Interface",
+      "type": "ethernet",
+      "status": "up",
+      "mac_address": "00:11:22:33:44:55",
+      "mtu": 1500,
+      "ip_addresses": [
+        {
+          "address": "192.168.1.1",
+          "prefix_length": 24,
+          "type": "IPv4",
+          "is_primary": true
+        }
+      ],
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-15T10:00:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+#### GET /network/interfaces/{id}
+
+Get details of a specific network interface.
+
+**Authentication:** Required
+
+**Permissions:** `config.read`
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | string (UUID) | Yes | Interface ID |
+
+**Response:**
+
+```json
+{
+  "id": "uuid-interface-id",
+  "name": "eth0",
+  "description": "Primary Ethernet Interface",
+  "type": "ethernet",
+  "status": "up",
+  "mac_address": "00:11:22:33:44:55",
+  "mtu": 1500,
+  "ip_addresses": [
+    {
+      "address": "192.168.1.1",
+      "prefix_length": 24,
+      "type": "IPv4",
+      "is_primary": true
+    },
+    {
+      "address": "2001:db8::1",
+      "prefix_length": 64,
+      "type": "IPv6",
+      "is_primary": false
+    }
+  ],
+  "statistics": {
+    "rx_bytes": 1024000,
+    "tx_bytes": 512000,
+    "rx_packets": 10000,
+    "tx_packets": 5000,
+    "rx_errors": 0,
+    "tx_errors": 0
+  },
+  "created_at": "2025-01-01T00:00:00Z",
+  "updated_at": "2025-01-15T10:00:00Z"
+}
+```
+
+#### POST /network/interfaces/{id}/configure
+
+Configure a network interface.
+
+**Authentication:** Required
+
+**Permissions:** `config.write`
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | string (UUID) | Yes | Interface ID |
+
+**Request Body:**
+
+```json
+{
+  "description": "Updated description",
+  "mtu": 9000,
+  "ip_addresses": [
+    {
+      "address": "192.168.2.1",
+      "prefix_length": 24,
+      "type": "IPv4"
+    }
+  ],
+  "enabled": true
+}
+```
+
+**Response:**
+
+```json
+{
+  "message": "Interface configuration accepted",
+  "interface_id": "uuid-interface-id",
+  "status": "pending_apply"
+}
+```
+
+#### GET /network/routes
+
+Get the routing table.
+
+**Authentication:** Required
+
+**Permissions:** `config.read`
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| node_id | string (UUID) | - | Filter by node ID |
+| type | string | - | Filter by route type |
+
+**Response:**
+
+```json
+{
+  "routes": [
+    {
+      "id": "uuid-route-id",
+      "destination": "192.168.0.0/24",
+      "gateway": "192.168.1.254",
+      "interface": "eth0",
+      "metric": 100,
+      "type": "static",
+      "created_at": "2025-01-01T00:00:00Z"
+    },
+    {
+      "id": "uuid-route-id-2",
+      "destination": "0.0.0.0/0",
+      "gateway": "192.168.1.1",
+      "interface": "eth0",
+      "metric": 0,
+      "type": "connected",
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  ],
+  "total": 2
+}
+```
+
+#### POST /network/routes
+
+Add a static route.
+
+**Authentication:** Required
+
+**Permissions:** `config.write`
+
+**Request Body:**
+
+```json
+{
+  "destination": "10.0.0.0/24",
+  "gateway": "192.168.1.1",
+  "interface": "eth0",
+  "metric": 100
+}
+```
+
+**Response:**
+
+```json
+{
+  "id": "uuid-new-route-id",
+  "destination": "10.0.0.0/24",
+  "gateway": "192.168.1.1",
+  "interface": "eth0",
+  "metric": 100,
+  "type": "static",
+  "created_at": "2025-01-16T12:00:00Z"
+}
+```
+
+#### DELETE /network/routes/{id}
+
+Delete a route.
+
+**Authentication:** Required
+
+**Permissions:** `config.write`
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | string (UUID) | Yes | Route ID |
+
+**Response:**
+
+```json
+{
+  "message": "Route deleted successfully"
+}
+```
+
+#### GET /network/firewall/rules
+
+Get firewall rules.
+
+**Authentication:** Required
+
+**Permissions:** `config.read`
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| node_id | string (UUID) | - | Filter by node ID |
+| chain | string | - | Filter by chain (INPUT, OUTPUT, FORWARD) |
+
+**Response:**
+
+```json
+{
+  "rules": [
+    {
+      "id": "uuid-rule-id",
+      "name": "Allow SSH",
+      "description": "Allow SSH access from trusted network",
+      "action": "accept",
+      "chain": "INPUT",
+      "source_address": "192.168.1.0/24",
+      "destination_address": null,
+      "source_port": null,
+      "destination_port": 22,
+      "protocol": "tcp",
+      "enabled": true,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-15T10:00:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+#### POST /network/firewall/rules
+
+Add a firewall rule.
+
+**Authentication:** Required
+
+**Permissions:** `config.write`
+
+**Request Body:**
+
+```json
+{
+  "name": "Allow HTTP",
+  "description": "Allow HTTP traffic",
+  "action": "accept",
+  "chain": "INPUT",
+  "destination_port": 80,
+  "protocol": "tcp",
+  "enabled": true
+}
+```
+
+**Response:**
+
+```json
+{
+  "id": "uuid-new-rule-id",
+  "name": "Allow HTTP",
+  "description": "Allow HTTP traffic",
+  "action": "accept",
+  "chain": "INPUT",
+  "destination_port": 80,
+  "protocol": "tcp",
+  "enabled": true,
+  "created_at": "2025-01-16T12:30:00Z"
+}
+```
+
+#### DELETE /network/firewall/rules/{id}
+
+Delete a firewall rule.
+
+**Authentication:** Required
+
+**Permissions:** `config.write`
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | string (UUID) | Yes | Rule ID |
+
+**Response:**
+
+```json
+{
+  "message": "Firewall rule deleted successfully"
+}
+```
+
+---
+
+### Monitoring
+
+#### GET /monitoring/metrics
+
+Get aggregate system metrics across all nodes.
+
+**Authentication:** Required
+
+**Permissions:** `monitoring.read`
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| start_time | string (ISO 8601) | - | Start of time range |
+| end_time | string (ISO 8601) | - | End of time range |
+
+**Response:**
+
+```json
+{
+  "cpu": {
+    "usage": 15.5,
+    "cores": 4,
+    "load_average": [0.5, 0.7, 0.6]
+  },
+  "memory": {
+    "total": 8589934592,
+    "used": 3221225472,
+    "available": 5368709120,
+    "percentage": 37.5
+  },
+  "disk": {
+    "total": 1099511627776,
+    "used": 439804651110,
+    "available": 659706976666,
+    "percentage": 40.0,
+    "path": "/"
+  },
+  "network": {
+    "interfaces": [
+      {
+        "name": "eth0",
+        "status": "up",
+        "speed": 1000,
+        "mtu": 1500
+      }
+    ]
+  }
+}
+```
+
+#### GET /monitoring/nodes/{node_id}/metrics
+
+Get system metrics for a specific node.
+
+**Authentication:** Required
+
+**Permissions:** `monitoring.read`
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| node_id | string (UUID) | Yes | Node ID |
+
+**Response:** (Same as `/monitoring/metrics`)
+
+#### GET /monitoring/summary
+
+Get dashboard summary statistics.
+
+**Authentication:** Required
+
+**Permissions:** `monitoring.read`
+
+**Response:**
+
+```json
+{
+  "total_nodes": 5,
+  "online_nodes": 4,
+  "offline_nodes": 1,
+  "degraded_nodes": 0,
+  "active_interfaces": 12,
+  "total_bandwidth": 1000,
+  "bandwidth_unit": "Mbps",
+  "system_status": "healthy"
+}
+```
+
+#### GET /monitoring/nodes/status
+
+Get status of all nodes.
+
+**Authentication:** Required
+
+**Permissions:** `monitoring.read`
+
+**Response:**
+
+```json
+[
+  {
+    "id": "uuid-node-id",
+    "name": "Router-01",
+    "ip": "192.168.1.1",
+    "status": "online",
+    "uptime": 86400,
+    "last_seen": "2025-01-16T12:00:00Z",
+    "cpu": 15.5,
+    "memory": 37.5,
+    "disk": 40.0,
+    "version": "1.4.0"
+  }
+]
+```
+
+#### GET /monitoring/traffic
+
+Get traffic data for a specific time range.
+
+**Authentication:** Required
+
+**Permissions:** `monitoring.read`
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| node_id | string (UUID) | - | Filter by node ID |
+| interface | string | - | Filter by interface name |
+| start_time | string (ISO 8601) | - | Start of time range |
+| end_time | string (ISO 8601) | - | End of time range |
+
+**Response:**
+
+```json
+[
+  {
+    "timestamp": "2025-01-16T12:00:00Z",
+    "inbound": 1024000,
+    "outbound": 512000,
+    "interface": "eth0"
+  }
+]
+```
+
+#### GET /monitoring/activity
+
+Get recent activity log.
+
+**Authentication:** Required
+
+**Permissions:** `monitoring.read`
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| limit | integer | 50 | Maximum number of entries |
+| type | string | - | Filter by activity type |
+
+**Response:**
+
+```json
+[
+  {
+    "id": "uuid-activity-id",
+    "timestamp": "2025-01-16T12:00:00Z",
+    "type": "config",
+    "message": "Interface eth0 configuration updated",
+    "node": "Router-01",
+    "user": "admin",
+    "details": {
+      "interface": "eth0",
+      "changes": ["mtu: 1500 -> 9000"]
+    }
+  }
+]
+```
+
+#### GET /monitoring/alerts
+
+Get active alerts.
+
+**Authentication:** Required
+
+**Permissions:** `monitoring.read`
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| acknowledged | boolean | false | Include acknowledged alerts |
+
+**Response:**
+
+```json
+[
+  {
+    "id": "uuid-alert-id",
+    "severity": "warning",
+    "title": "High CPU Usage",
+    "message": "CPU usage exceeded 80% threshold",
+    "timestamp": "2025-01-16T12:00:00Z",
+    "node": "Router-01",
+    "acknowledged": false,
+    "details": {
+      "cpu_usage": 85.5,
+      "threshold": 80.0
+    }
+  }
+]
+```
+
+#### POST /monitoring/alerts/{alert_id}/acknowledge
+
+Acknowledge an alert.
+
+**Authentication:** Required
+
+**Permissions:** `monitoring.read`
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| alert_id | string (UUID) | Yes | Alert ID |
+
+**Response:**
+
+```json
+{
+  "message": "Alert acknowledged successfully"
+}
+```
+
+---
+
+### Node Management
+
+#### GET /nodes
+
+List all nodes.
+
+**Authentication:** Required
+
+**Permissions:** `nodes.read`
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| type | string | - | Filter by node type |
+| status | string | - | Filter by status |
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "uuid-node-id",
+      "name": "Router-01",
+      "hostname": "router01.example.com",
+      "ip_address": "192.168.1.1",
+      "port": 8443,
+      "type": "router",
+      "status": "online",
+      "version": "1.4.0",
+      "description": "Main router",
+      "location": "Data Center 1",
+      "tags": ["production", "core"],
+      "health_metrics": [
+        {
+          "name": "cpu",
+          "value": 15.5,
+          "unit": "%",
+          "status": "healthy",
+          "timestamp": "2025-01-16T12:00:00Z"
+        }
+      ],
+      "last_connected": "2025-01-16T12:00:00Z",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-15T10:00:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+#### POST /nodes
+
+Add a new node.
+
+**Authentication:** Required
+
+**Permissions:** `nodes.write`
+
+**Request Body:**
+
+```json
+{
+  "name": "Router-02",
+  "hostname": "router02.example.com",
+  "ip_address": "192.168.1.2",
+  "port": 8443,
+  "type": "router",
+  "description": "Backup router",
+  "location": "Data Center 1",
+  "tags": ["production"]
+}
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "id": "uuid-new-node-id",
+    "name": "Router-02",
+    "hostname": "router02.example.com",
+    "ip_address": "192.168.1.2",
+    "port": 8443,
+    "type": "router",
+    "status": "offline",
+    "description": "Backup router",
+    "location": "Data Center 1",
+    "tags": ["production"],
+    "created_at": "2025-01-16T12:00:00Z"
+  },
+  "message": "Node created successfully"
+}
+```
+
+#### PUT /nodes/{id}
+
+Update a node.
+
+**Authentication:** Required
+
+**Permissions:** `nodes.write`
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | string (UUID) | Yes | Node ID |
+
+**Request Body:**
+
+```json
+{
+  "description": "Updated description",
+  "tags": ["production", "core"]
+}
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "id": "uuid-node-id",
+    "name": "Router-01",
+    "description": "Updated description",
+    "tags": ["production", "core"],
+    "updated_at": "2025-01-16T13:00:00Z"
+  }
+}
+```
+
+#### DELETE /nodes/{id}
+
+Delete a node.
+
+**Authentication:** Required
+
+**Permissions:** `nodes.delete`
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | string (UUID) | Yes | Node ID |
+
+**Response:** (Empty with 204 status code)
+
+#### POST /nodes/{id}/test-connection
+
+Test connection to a node.
+
+**Authentication:** Required
+
+**Permissions:** `nodes.write`
+
+**Path Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | string (UUID) | Yes | Node ID |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "latency": 15.5
+}
+```
+
+---
+
+### WebSocket
+
+#### Connection
+
+Connect to the WebSocket endpoint for real-time updates.
+
+**WebSocket URL:**
+
+```
+ws://localhost:8080/ws
+```
+
+For production:
+
+```
+wss://your-domain.com/ws
+```
+
+### WebSocket Messages
+
+#### Client to Server
+
+##### Authentication
+
+```json
+{
+  "type": "Auth",
+  "data": {
+    "token": "your-jwt-token"
+  }
+}
+```
+
+##### Subscribe to Channel
+
+```json
+{
+  "type": "Subscribe",
+  "data": {
+    "channel": "monitoring"
+  }
+}
+```
+
+##### Unsubscribe from Channel
+
+```json
+{
+  "type": "Unsubscribe",
+  "data": {
+    "channel": "monitoring"
+  }
+}
+```
+
+#### Server to Client
+
+##### Traffic Update
+
+```json
+{
+  "type": "traffic",
+  "data": {
+    "timestamp": "2025-01-16T12:00:00Z",
+    "inbound": 1024000,
+    "outbound": 512000,
+    "interface": "eth0",
+    "node_id": "uuid-node-id"
+  }
+}
+```
+
+##### Activity Log Update
+
+```json
+{
+  "type": "activity",
+  "data": {
+    "id": "uuid-activity-id",
+    "timestamp": "2025-01-16T12:00:00Z",
+    "type": "config",
+    "message": "Interface eth0 configuration updated",
+    "node": "Router-01",
+    "user": "admin"
+  }
+}
+```
+
+##### Alert
+
+```json
+{
+  "type": "alert",
+  "data": {
+    "id": "uuid-alert-id",
+    "severity": "warning",
+    "title": "High CPU Usage",
+    "message": "CPU usage exceeded 80% threshold",
+    "timestamp": "2025-01-16T12:00:00Z",
+    "node": "Router-01",
+    "acknowledged": false
+  }
+}
+```
+
+##### Node Status Update
+
+```json
+{
+  "type": "nodeStatus",
+  "data": {
+    "id": "uuid-node-id",
+    "name": "Router-01",
+    "status": "online",
+    "cpu": 15.5,
+    "memory": 37.5
+  }
+}
+```
+
+##### Ping (Heartbeat)
+
+```json
+{
+  "type": "ping"
+}
+```
+
+##### Error
+
+```json
+{
+  "type": "error",
+  "error": "Authentication failed"
+}
+```
+
+---
+
+## Rate Limiting
+
+API requests are rate limited to prevent abuse:
+
+| Endpoint | Rate Limit |
+|----------|------------|
+| Authentication endpoints | 5 requests/minute |
+| Read endpoints | 100 requests/minute |
+| Write endpoints | 30 requests/minute |
+
+Rate limit information is returned in headers:
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1709251200
+```
+
+---
+
+## API Versioning
+
+The API is versioned via the base URL. The current version is `v1`.
+
+```
+https://your-domain.com/api/v1
+```
+
+Backwards compatibility is maintained within major versions.
+
+---
+
+## Pagination
+
+List endpoints support pagination:
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| page | integer | 1 | Page number (1-based) |
+| limit | integer | 20 | Items per page (max 100) |
+
+**Response Headers:**
+
+```
+X-Total-Count: 150
+X-Page-Count: 8
+X-Current-Page: 1
+```
+
+---
+
+## Sorting
+
+List endpoints support sorting:
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| sort | string | id | Field to sort by |
+| order | string | asc | Sort direction (asc, desc) |
+
+Example: `?sort=created_at&order=desc`
+
+---
+
+## Filtering
+
+List endpoints support filtering on common fields:
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| field=value | - | Exact match |
+| field__contains=value | - | Contains string |
+| field__gt=value | - | Greater than |
+| field__lt=value | - | Less than |
+| field__gte=value | - | Greater than or equal |
+| field__lte=value | - | Less than or equal |
+
+Example: `?status=online&created_at__gte=2025-01-01`
+
+---
+
+**Version**: 0.1.0
+**Last Updated**: February 2025

@@ -1,541 +1,743 @@
-# VyOS Web UI 用户手册
+# VyOS Web UI - User Manual
 
-## 目录
-1. [简介](#简介)
-2. [系统要求](#系统要求)
-3. [安装和配置](#安装和配置)
-4. [用户认证](#用户认证)
-5. [主界面介绍](#主界面介绍)
-6. [网络配置](#网络配置)
-7. [监控功能](#监控功能)
-8. [用户管理](#用户管理)
-9. [系统设置](#系统设置)
-10. [故障排除](#故障排除)
-11. [常见问题](#常见问题)
+## Table of Contents
 
-## 简介
+- [Overview](#overview)
+- [Getting Started](#getting-started)
+- [Dashboard](#dashboard)
+- [Node Management](#node-management)
+- [Network Configuration](#network-configuration)
+- [Monitoring](#monitoring)
+- [System Management](#system-management)
+- [User Management](#user-management)
+- [Best Practices](#best-practices)
+- [Frequently Asked Questions](#frequently-asked-questions)
 
-### 什么是 VyOS Web UI？
+---
 
-VyOS Web UI 是一个现代化的 Web 界面，为 VyOS 网络操作系统提供直观的管理体验。通过这个界面，网络管理员可以轻松地配置路由、防火墙、接口等网络功能，监控系统状态，并管理用户账户。
+## Overview
 
-### 主要功能
-- 用户友好的图形界面
-- 网络配置管理（接口、路由、防火墙等）
-- 实时系统监控
-- 用户管理和权限控制
-- 配置备份和恢复
-- 系统日志查看
+The VyOS Web UI provides a modern, intuitive interface for managing VyOS-based network devices. This manual will guide you through all the features and functionality of the application.
 
-## 系统要求
+### Key Features
 
-### 硬件要求
-- **处理器**: 2 GHz 双核处理器或更高
-- **内存**: 4 GB RAM（推荐 8 GB）
-- **存储**: 10 GB 可用空间
-- **网络**: 10/100/1000 Mbps 以太网连接
+- Centralized management of multiple VyOS nodes
+- Real-time monitoring and alerting
+- Network configuration management
+- Configuration history with rollback capabilities
+- Role-based access control
+- Responsive design for desktop and mobile
 
-### 软件要求
-- **操作系统**: Linux (Ubuntu 20.04+, CentOS 8+, Debian 10+), Windows Server 2019+, macOS 10.15+
-- **浏览器**: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
-- **数据库**: SQLite (内置), MySQL 8.0+ (可选)
-- **Docker**: 版本 20.10+ (如果使用容器部署)
+---
 
-### 网络要求
-- 访问 VyOS 系统的网络连接
-- HTTP/HTTPS 端口 (通常 80/443) 访问权限
-- WebSockets 支持（用于实时监控）
+## Getting Started
 
-## 安装和配置
+### First Login
 
-### Docker 安装（推荐）
+1. Open your web browser and navigate to the VyOS Web UI URL
+2. Enter your username and password
+3. Click the "Sign In" button
 
-1. 确保系统已安装 Docker 和 Docker Compose
-2. 下载预配置的 Docker Compose 文件：
-```bash
-curl -o docker-compose.yml https://raw.githubusercontent.com/vyos/web-ui/main/docker/docker-compose.yml
+**Default Credentials (for new installations):**
+- Username: `admin`
+- Password: `admin123`
+
+**Important:** Change the default password immediately after your first login.
+
+### Changing Your Password
+
+1. Click on your user avatar in the top-right corner
+2. Select "Settings" from the dropdown
+3. Navigate to the "Security" tab
+4. Enter your current password
+5. Enter your new password
+6. Confirm your new password
+7. Click "Change Password"
+
+### Navigation
+
+The application uses a sidebar for navigation:
+
+- **Dashboard**: Overview of system status and metrics
+- **Nodes**: Manage your VyOS nodes
+- **Network**: Configure network interfaces, routes, and firewall
+- **Monitoring**: View detailed monitoring data and alerts
+- **System**: System management and logs
+- **Users**: User and role management (Admin only)
+
+### Theme Selection
+
+Switch between light and dark themes:
+
+1. Click on your user avatar
+2. Select "Theme"
+3. Choose "Light" or "Dark"
+
+---
+
+## Dashboard
+
+The Dashboard provides an at-a-glance view of your network infrastructure.
+
+### System Overview
+
+The System Overview panel displays:
+
+- Total nodes in the system
+- Online/offline node count
+- Active network interfaces
+- Overall system status (Healthy, Warning, Critical)
+
+### Traffic Chart
+
+View real-time traffic statistics:
+
+- Select a time range (Last hour, 24 hours, 7 days)
+- Toggle between inbound and outbound traffic
+- Hover over data points for detailed information
+
+### Activity Log
+
+The Activity Log shows recent system events:
+
+- Configuration changes
+- Node status changes
+- User actions
+- System alerts
+
+Events are categorized by type and include timestamps.
+
+### Alert Panel
+
+View active alerts requiring attention:
+
+- Severity indicators (Info, Warning, Error, Critical)
+- Alert descriptions
+- Acknowledge alerts to mark them as reviewed
+
+---
+
+## Node Management
+
+### Adding a New Node
+
+1. Navigate to the "Nodes" page
+2. Click the "Add Node" button
+3. Fill in the required information:
+   - **Name**: Display name for the node
+   - **Hostname**: Fully qualified domain name or IP address
+   - **IP Address**: Management IP address
+   - **Port**: API port (default: 8443)
+   - **Type**: Node type (Router, Switch, Firewall, etc.)
+   - **Description**: Optional description
+   - **Location**: Optional location information
+   - **Tags**: Optional tags for organization
+4. Click "Test Connection" to verify connectivity
+5. Click "Add Node" to save
+
+### Viewing Node Details
+
+1. Navigate to the "Nodes" page
+2. Click on a node card or row to view details
+3. The node detail page shows:
+   - Basic information (name, hostname, IP, type)
+   - Current status (online/offline/degraded)
+   - Health metrics (CPU, memory, disk usage)
+   - Last connection time
+   - Configuration version
+
+### Updating Node Configuration
+
+1. Open the node detail page
+2. Click the "Edit" button
+3. Modify the desired fields
+4. Click "Save" to apply changes
+
+### Deleting a Node
+
+1. Navigate to the "Nodes" page
+2. Click the "Delete" button on the node row
+3. Confirm the deletion in the dialog
+
+**Warning:** Deleting a node removes all associated configuration history and monitoring data.
+
+### Testing Node Connection
+
+1. Navigate to the "Nodes" page
+2. Click the "Test Connection" button on a node
+3. View the connection test results:
+   - Success with latency
+   - Failure with error message
+
+### Importing Nodes
+
+Import multiple nodes at once:
+
+1. Navigate to the "Nodes" page
+2. Click "Import Nodes"
+3. Select a JSON or YAML file containing node definitions
+4. Review the import summary
+5. Click "Import" to add the nodes
+
+**Import File Format (JSON):**
+
+```json
+[
+  {
+    "name": "Router-01",
+    "hostname": "router01.example.com",
+    "ip_address": "192.168.1.1",
+    "port": 8443,
+    "type": "router",
+    "description": "Main router",
+    "location": "Data Center 1",
+    "tags": ["production", "core"]
+  }
+]
 ```
 
-3. 修改配置文件以适应您的环境：
-```bash
-vim docker-compose.yml
-```
-
-4. 启动服务：
-```bash
-docker-compose up -d
-```
-
-5. 访问 Web 界面：
-打开浏览器并导航到 `http://your-server-ip:3000`
+### Exporting Nodes
+
+Export node configurations:
+
+1. Navigate to the "Nodes" page
+2. Click "Export Nodes"
+3. Select export format (JSON or YAML)
+4. Save the file to your computer
 
-### 从源代码安装
+---
 
-1. 克隆项目仓库：
-```bash
-git clone https://github.com/vyos/web-ui.git
-cd vyos/web-ui
-```
+## Network Configuration
 
-2. 安装前端依赖：
-```bash
-cd frontend
-npm install
-npm run build
-```
+### Interface Configuration
+
+#### Viewing Interfaces
+
+1. Navigate to "Network" > "Interfaces"
+2. Select a node from the dropdown
+3. View all interfaces with their status and configuration
 
-3. 安装后端依赖：
-```bash
-cd ../backend
-cargo build --release
-```
+#### Adding an IP Address
+
+1. Navigate to "Network" > "Interfaces"
+2. Click on an interface to view details
+3. Click "Add IP Address"
+4. Enter IP address and prefix length
+5. Select IP type (IPv4 or IPv6)
+6. Check "Primary" if this is the primary address
+7. Click "Add"
+
+#### Configuring Interface Settings
+
+1. Navigate to "Network" > "Interfaces"
+2. Click on an interface
+3. Modify settings:
+   - Description
+   - MTU (Maximum Transmission Unit)
+   - Enable/Disable interface
+4. Click "Apply Configuration"
 
-4. 配置环境变量：
-```bash
-cp .env.example .env
-vim .env
-```
+### Routing Configuration
 
-5. 启动服务：
-```bash
-# 启动后端
-cd ../backend
-./target/release/vyos-web-backend
-
-# 在另一个终端启动前端（开发模式）
-cd ../frontend
-npm run dev
-```
-
-### 初始配置
+#### Viewing Routes
 
-首次访问系统时，您需要创建管理员账户：
-
-1. 打开 Web 浏览器并访问 VyOS Web UI 地址
-2. 点击 "Register New Account" 或 "Create Admin User"
-3. 输入管理员凭据：
-   - 用户名: `admin`
-   - 电子邮箱: `admin@yourdomain.com`
-   - 密码: 至少 8 位，包含字母、数字和特殊字符
-4. 确认密码并点击 "Create Account"
-5. 登录到系统
-
-## 用户认证
-
-### 登录
-
-1. 打开 VyOS Web UI 登录页面
-2. 输入用户名和密码
-3. 点击 "Sign In" 按钮
-4. 成功后将被重定向到仪表板
-
-### 注册新用户（需要管理员权限）
-
-1. 导航到 "Users" > "User Management"
-2. 点击 "Add New User" 按钮
-3. 输入用户信息：
-   - 用户名
-   - 电子邮箱
-   - 密码
-   - 角色（管理员、普通用户等）
-4. 点击 "Create User"
-
-### 密码重置
-
-如果您忘记了密码：
-
-1. 在登录页面点击 "Forgot Password?"
-2. 输入您的电子邮件地址
-3. 检查您的电子邮件以获取重置链接
-4. 点击链接并按照提示创建新密码
-
-### 双因素认证（可选）
-
-如果启用了双因素认证：
-
-1. 输入用户名和密码
-2. 输入来自身份验证器应用的代码
-3. 点击 "Verify" 继续
-
-## 主界面介绍
-
-### 仪表板（Dashboard）
-
-仪表板提供系统的概览信息：
-
-- **系统状态**: 显示 CPU、内存、磁盘使用率
-- **网络活动**: 当前网络流量统计
-- **最近事件**: 显示最近的系统事件和警报
-- **快速操作**: 常用功能的快捷方式
-
-### 导航菜单
-
-左侧导航菜单包含以下部分：
-
-- **仪表板**: 系统概览
-- **网络配置**: 接口、路由、防火墙等
-- **监控**: 系统和网络监控
-- **用户**: 用户管理
-- **系统**: 系统设置和配置
-
-## 网络配置
-
-### 接口配置
-
-#### 查看接口列表
-1. 导航到 "Network Config" > "Interfaces"
-2. 界面将显示所有可用网络接口的状态
-
-#### 添加新接口
-1. 点击 "Add Interface" 按钮
-2. 选择接口类型（Ethernet, VLAN, Bond, Loopback）
-3. 配置接口参数：
-   - 接口名称
-   - IP 地址和子网掩码
-   - 描述（可选）
-4. 点击 "Save Configuration"
-
-#### 修改现有接口
-1. 在接口列表中找到目标接口
-2. 点击 "Edit" 按钮
-3. 修改所需参数
-4. 点击 "Update Configuration"
-
-### 路由配置
-
-#### 查看路由表
-1. 导航到 "Network Config" > "Routing"
-2. 查看当前活动路由
-
-#### 添加静态路由
-1. 点击 "Add Route" 按钮
-2. 填写路由信息：
-   - 目标网络
-   - 网关
-   - 度量值（可选）
-   - 出站接口（可选）
-3. 点击 "Add Route"
-
-#### 删除路由
-1. 在路由列表中找到目标路由
-2. 点击 "Remove" 按钮
-3. 确认删除操作
-
-### 防火墙配置
-
-#### 查看防火墙规则
-1. 导航到 "Network Config" > "Firewall"
-2. 查看现有的防火墙规则
-
-#### 添加防火墙规则
-1. 点击 "Add Rule" 按钮
-2. 配置规则参数：
-   - 规则名称
-   - 序列号（决定规则优先级）
-   - 动作（接受、拒绝、丢弃）
-   - 协议（TCP, UDP, ICMP, ALL）
-   - 源地址（可选）
-   - 目标地址（可选）
-   - 源端口（可选）
-   - 目标端口（可选）
-   - 接口（可选）
-3. 点击 "Add Rule"
-
-#### 修改防火墙规则
-1. 在规则列表中找到目标规则
-2. 点击 "Edit" 按钮
-3. 修改所需参数
-4. 点击 "Update Rule"
-
-### DHCP 配置
-
-#### DHCP 服务管理
-1. 导航到 "Network Config" > "DHCP"
-2. 查看 DHCP 作用域和服务状态
-
-#### 添加 DHCP 作用域
-1. 点击 "Add Scope" 按钮
-2. 配置作用域参数：
-   - 作用域名称
-   - 网络地址和子网掩码
-   - IP 地址池范围
-   - 租约时间
-   - 默认网关
-   - DNS 服务器
-3. 点击 "Create Scope"
-
-## 监控功能
-
-### 实时监控
-
-#### 系统监控
-1. 导航到 "Monitoring" > "System Metrics"
-2. 查看实时 CPU、内存、磁盘使用情况
-3. 图表自动更新以显示最新数据
-
-#### 网络监控
-1. 导航到 "Monitoring" > "Network Traffic"
-2. 查看实时网络流量统计
-3. 选择特定接口查看详细信息
-
-#### 自定义监控视图
-1. 在监控页面点击 "Custom View" 按钮
-2. 选择要显示的指标
-3. 配置时间范围和更新频率
-4. 保存视图为个人仪表板
-
-### 告警管理
-
-#### 查看告警
-1. 导航到 "Monitoring" > "Alerts"
-2. 查看当前和历史告警
-3. 按严重程度、时间或类型过滤告警
-
-#### 配置告警规则
-1. 点击 "Alert Rules" 选项卡
-2. 点击 "Add Rule" 按钮
-3. 配置告警条件：
-   - 监控指标
-   - 阈值
-   - 时间窗口
-   - 通知方式
-4. 点击 "Save Rule"
-
-#### 告警通知
-系统支持以下通知方式：
-- 电子邮件
-- SNMP trap
-- Webhook
-
-## 用户管理
-
-### 用户账户管理
-
-#### 查看用户列表
-1. 导航到 "Users" > "User Management"
-2. 查看所有系统用户及其状态
-
-#### 添加新用户
-1. 点击 "Add User" 按钮
-2. 输入用户信息：
-   - 用户名
-   - 电子邮箱
-   - 全名（可选）
-   - 角色分配
-3. 点击 "Create User"
-
-#### 修改用户信息
-1. 在用户列表中找到目标用户
-2. 点击 "Edit" 按钮
-3. 修改用户信息
-4. 点击 "Save Changes"
-
-#### 禁用/启用用户账户
-1. 找到目标用户
-2. 点击用户状态切换按钮
-3. 确认操作
-
-### 角色和权限管理
-
-#### 查看角色列表
-1. 导航到 "Users" > "Roles"
-2. 查看所有可用角色
-
-#### 创建新角色
-1. 点击 "Add Role" 按钮
-2. 输入角色信息：
-   - 角色名称
-   - 描述
-   - 权限分配
-3. 点击 "Create Role"
-
-#### 分配权限
-权限分为以下类别：
-- 网络配置权限
-- 监控权限
-- 用户管理权限
-- 系统管理权限
-
-## 系统设置
-
-### 一般设置
-
-#### 系统信息
-1. 导航到 "System" > "General Settings"
-2. 查看系统版本、运行时间等信息
-3. 可配置以下选项：
-   - 系统名称
-   - 时区
-   - 日期/时间格式
-
-#### 网络设置
-配置管理接口的网络参数：
-- IP 地址
-- 子网掩码
-- 默认网关
-- DNS 服务器
-
-### 安全设置
-
-#### 证书管理
-1. 导航到 "System" > "Security"
-2. 管理 SSL 证书
-3. 上传新的证书或生成自签名证书
-
-#### 访问控制
-配置 IP 白名单或黑名单：
-- 允许的 IP 地址范围
-- 拒绝的 IP 地址范围
-- 访问时间限制
-
-### 备份和恢复
-
-#### 创建备份
-1. 导航到 "System" > "Backup & Restore"
-2. 点击 "Create Backup"
-3. 选择要备份的数据：
-   - 用户配置
-   - 网络配置
-   - 系统设置
-   - 监控数据（可选）
-4. 下载备份文件
-
-#### 恢复配置
-1. 点击 "Restore from Backup"
-2. 上传备份文件
-3. 选择要恢复的配置类型
-4. 确认恢复操作
-
-### 日志管理
-
-#### 查看系统日志
-1. 导航到 "System" > "Logs"
-2. 查看不同类型的日志：
-   - 系统日志
-   - 安全日志
-   - 网络事件日志
-3. 使用过滤器搜索特定条目
-
-#### 日志导出
-1. 选择日期范围和日志类型
-2. 点击 "Export Logs"
-3. 选择导出格式（CSV, JSON, TXT）
-4. 下载日志文件
-
-## 故障排除
-
-### 常见问题诊断
-
-#### 无法登录
-症状：登录失败或出现错误消息
-
-解决方案：
-1. 检查用户名和密码是否正确
-2. 确认系统时间和时区设置正确
-3. 清除浏览器缓存和 Cookie
-4. 尝试在隐私模式下登录
-5. 检查系统日志中的错误信息
-
-#### 网络配置不生效
-症状：配置保存但未应用到系统
-
-解决方案：
-1. 检查是否有语法错误
-2. 确认网络服务正在运行
-3. 查看应用配置的日志
-4. 尝试手动重启相关服务
-5. 验证配置语法
-
-#### 监控数据缺失
-症状：监控图表为空或数据过时
-
-解决方案：
-1. 检查数据采集服务状态
-2. 验证网络连接性
-3. 确认监控代理配置正确
-4. 重启监控服务
-5. 检查系统资源是否充足
-
-### 日志分析
-
-#### 关键日志位置
-- **前端日志**: 浏览器开发者工具 > Console
-- **后端日志**: 控制台输出或日志文件
-- **数据库日志**: 数据库日志目录
-- **系统日志**: /var/log/vyos-web-ui/
-
-#### 错误代码解释
-- **401**: 未授权 - 检查认证状态
-- **403**: 禁止访问 - 检查用户权限
-- **404**: 资源不存在 - 检查 API 端点
-- **500**: 服务器内部错误 - 检查后端日志
-
-### 性能问题
-
-#### 界面响应慢
-1. 检查网络连接速度
-2. 确认服务器资源充足
-3. 查看并发用户数量
-4. 检查数据库查询性能
-
-#### API 响应时间长
-1. 检查数据库连接池设置
-2. 优化数据库查询
-3. 调整缓存配置
-4. 监控服务器资源使用情况
-
-## 常见问题
-
-### Q: 如何重置管理员密码？
-A: 如果您是系统管理员，可以通过以下步骤重置密码：
-1. 在数据库中直接修改用户密码哈希
-2. 或使用命令行工具重置：`vyos-cli reset-password admin`
-
-### Q: 支持哪些浏览器？
-A: VyOS Web UI 支持最新的主流浏览器，包括 Chrome、Firefox、Safari 和 Edge。推荐使用最新版本以获得最佳体验。
-
-### Q: 如何备份网络配置？
-A: 您可以通过 "System" > "Backup & Restore" 页面创建完整备份，或者通过 "Network Config" 页面导出特定配置。
-
-### Q: 是否支持 LDAP 集成？
-A: 当前版本支持本地用户认证，LDAP 集成计划在未来版本中实现。
-
-### Q: 监控数据保存多长时间？
-A: 监控数据的保留时间取决于系统配置，默认情况下保留 30 天的数据。
-
-### Q: 如何联系技术支持？
-A: 您可以通过以下方式获得支持：
-- 访问官方文档：https://docs.vyos.io
-- 加入社区论坛：https://forum.vyos.io
-- 报告问题：https://github.com/vyos/web-ui/issues
-
-### Q: 是否可以离线使用？
-A: VyOS Web UI 需要与 VyOS 系统保持连接才能正常工作，因为它需要与底层系统进行实时通信。
-
-## 附录
-
-### 快捷键
-- `Ctrl + S`: 保存当前配置
-- `Ctrl + R`: 刷新当前页面
-- `Ctrl + F`: 在页面内搜索
-- `Esc`: 取消当前操作
-
-### API 参考
-完整的 API 文档可在 `/api/docs` 路径下访问（需要认证）。
-
-### 术语表
-- **ACL**: 访问控制列表 (Access Control List)
-- **DHCP**: 动态主机配置协议 (Dynamic Host Configuration Protocol)
-- **DNS**: 域名系统 (Domain Name System)
-- **NAT**: 网络地址转换 (Network Address Translation)
-- **QoS**: 服务质量 (Quality of Service)
-- **VPN**: 虚拟专用网络 (Virtual Private Network)
-- **VLAN**: 虚拟局域网 (Virtual Local Area Network)
-
-### 版本历史
-- **v1.0.0**: 初始版本，包含基本网络配置和监控功能
-- **v1.1.0**: 添加用户管理和高级安全功能
-- **v1.2.0**: 改进性能和用户界面体验
-
-### 许可证信息
-VyOS Web UI 是开源软件，采用 MIT 许可证。您可以自由使用、修改和分发此软件。
+1. Navigate to "Network" > "Routing"
+2. Select a node
+3. View the routing table with:
+   - Destination networks
+   - Gateways
+   - Interfaces
+   - Route types (Connected, Static, Dynamic)
+   - Metrics
+
+#### Adding a Static Route
+
+1. Navigate to "Network" > "Routing"
+2. Click "Add Route"
+3. Enter route information:
+   - **Destination**: Network address (e.g., 10.0.0.0/24)
+   - **Gateway**: Next-hop IP address
+   - **Interface**: Outbound interface
+   - **Metric**: Route metric (optional)
+4. Click "Add Route"
+
+#### Deleting a Route
+
+1. Navigate to "Network" > "Routing"
+2. Locate the route
+3. Click the "Delete" button
+4. Confirm deletion
+
+### Firewall Configuration
+
+#### Viewing Firewall Rules
+
+1. Navigate to "Network" > "Firewall"
+2. Select a node
+3. View rules by chain (INPUT, OUTPUT, FORWARD)
+
+#### Adding a Firewall Rule
+
+1. Navigate to "Network" > "Firewall"
+2. Click "Add Rule"
+3. Configure the rule:
+   - **Name**: Descriptive rule name
+   - **Description**: Optional description
+   - **Chain**: INPUT, OUTPUT, or FORWARD
+   - **Action**: Accept, Drop, or Reject
+   - **Source Address**: Source network (optional)
+   - **Destination Address**: Destination network (optional)
+   - **Source Port**: Source port (optional)
+   - **Destination Port**: Destination port (optional)
+   - **Protocol**: TCP, UDP, or any
+   - **Enabled**: Toggle to enable/disable
+4. Click "Add Rule"
+
+#### Managing Firewall Rules
+
+- Toggle rules on/off using the switch
+- Edit rules by clicking the edit icon
+- Delete rules by clicking the delete button
+- Drag and drop to reorder rules
+
+### Configuration History
+
+#### Viewing Configuration History
+
+1. Navigate to "Network" > "Config History"
+2. Select a node
+3. View all configuration versions with:
+   - Version number
+   - Change summary
+   - User who made the change
+   - Timestamp
+   - Rollback point indicator
+
+#### Comparing Configurations
+
+1. Navigate to "Network" > "Config History"
+2. Select two configuration versions
+3. Click "Compare"
+4. View the diff showing:
+   - Added lines (green)
+   - Removed lines (red)
+   - Modified lines (yellow)
+
+#### Rolling Back Configuration
+
+1. Navigate to "Network" > "Config History"
+2. Select the configuration to roll back to
+3. Click "Rollback"
+4. Confirm the rollback in the dialog
+
+**Warning:** Rolling back will replace the current configuration. Ensure you have a backup if needed.
+
+---
+
+## Monitoring
+
+### System Metrics
+
+View detailed system metrics for individual nodes:
+
+1. Navigate to the "Monitoring" page
+2. Select a node
+3. View metrics sections:
+
+#### CPU Metrics
+- Current CPU usage percentage
+- Number of CPU cores
+- Load averages (1, 5, 15 minutes)
+
+#### Memory Metrics
+- Total memory
+- Used memory
+- Available memory
+- Usage percentage
+
+#### Disk Metrics
+- Total disk space
+- Used disk space
+- Available disk space
+- Usage percentage
+
+#### Network Interface Metrics
+- Interface name and status
+- Link speed
+- MTU
+- RX/TX bytes and packets
+- Error counts
+
+### Traffic Monitoring
+
+1. Navigate to the "Monitoring" page
+2. Click the "Traffic" tab
+3. Select time range
+4. Select interface (optional)
+5. View traffic charts showing:
+   - Inbound traffic
+   - Outbound traffic
+   - Total traffic
+
+### Alerts
+
+#### Viewing Alerts
+
+1. Navigate to the "Monitoring" page
+2. Click the "Alerts" tab
+3. View alerts grouped by severity:
+   - **Critical**: Immediate attention required
+   - **Error**: Action required soon
+   - **Warning**: Review recommended
+   - **Info**: Informational
+
+#### Acknowledging Alerts
+
+1. Navigate to the "Monitoring" page
+2. Click the "Alerts" tab
+3. Click "Acknowledge" on an alert
+4. The alert is marked as reviewed
+
+#### Bulk Acknowledge
+
+1. Select multiple alerts using checkboxes
+2. Click "Acknowledge Selected"
+
+#### Configuring Alert Thresholds
+
+Alert thresholds are configured in the system settings (Admin only):
+
+1. Navigate to "System" > "Settings"
+2. Click the "Alerts" tab
+3. Configure thresholds for:
+   - CPU usage
+   - Memory usage
+   - Disk usage
+   - Interface errors
+4. Click "Save"
+
+---
+
+## System Management
+
+### Image Management
+
+Manage VyOS system images:
+
+1. Navigate to "System" > "Image Manager"
+2. View installed images
+3. Perform actions:
+
+#### Uploading an Image
+
+1. Click "Upload Image"
+2. Select the image file (.iso)
+3. Enter image version
+4. Click "Upload"
+
+#### Setting Default Image
+
+1. Locate the image
+2. Click "Set as Default"
+3. Confirm the action
+
+#### Deleting an Image
+
+1. Locate the image
+2. Click "Delete"
+3. Confirm deletion
+
+**Warning:** Deleting the currently running image is not allowed.
+
+### System Operations
+
+#### Rebooting a Node
+
+1. Navigate to the "System" page
+2. Select the node
+3. Click "Reboot"
+4. Confirm in the dialog
+5. Monitor the reboot progress
+
+#### Powering Off a Node
+
+1. Navigate to the "System" page
+2. Select the node
+3. Click "Power Off"
+4. Confirm in the dialog
+
+**Warning:** Powering off a node will disconnect all active connections.
+
+### System Logs
+
+View and analyze system logs:
+
+1. Navigate to "System" > "Logs"
+2. Select a node
+3. Select log type:
+   - System logs
+   - Configuration logs
+   - Error logs
+4. Filter logs by:
+   - Time range
+   - Log level
+   - Search term
+5. Export logs using the "Export" button
+
+### Configuration Backup
+
+#### Creating a Backup
+
+1. Navigate to "System" > "Backup"
+2. Select node(s)
+3. Click "Create Backup"
+4. Enter backup name (optional)
+5. Click "Backup"
+
+#### Restoring from Backup
+
+1. Navigate to "System" > "Backup"
+2. Locate the backup
+3. Click "Restore"
+4. Confirm the restore operation
+
+**Warning:** Restore will replace the current configuration.
+
+---
+
+## User Management
+
+*Note: User management features require Admin privileges.*
+
+### Viewing Users
+
+1. Navigate to the "Users" page
+2. View all users with:
+   - Username
+   - Email
+   - Role
+   - Status
+   - Last login
+
+### Adding a User
+
+1. Navigate to the "Users" page
+2. Click "Add User"
+3. Enter user information:
+   - **Username**: Unique username
+   - **Email**: Valid email address
+   - **Password**: Strong password
+   - **Full Name**: User's full name
+   - **Role**: Admin, Operator, or Viewer
+4. Click "Create User"
+
+### User Roles
+
+#### Admin
+- Full system access
+- User and role management
+- System configuration
+- View and modify all data
+
+#### Operator
+- Network configuration
+- Node management
+- View monitoring data
+- Cannot manage users
+
+#### Viewer
+- Read-only access
+- View monitoring data
+- View configurations
+- Cannot make changes
+
+### Updating User Information
+
+1. Navigate to the "Users" page
+2. Click "Edit" on the user row
+3. Modify user information
+4. Click "Save"
+
+### Changing User Password
+
+1. Navigate to the "Users" page
+2. Click "Edit" on the user row
+3. Click "Change Password"
+4. Enter new password
+5. Confirm new password
+6. Click "Change Password"
+
+### Disabling a User
+
+1. Navigate to the "Users" page
+2. Click "Edit" on the user row
+3. Change status to "Disabled"
+4. Click "Save"
+
+**Note:** Disabled users cannot log in.
+
+### Deleting a User
+
+1. Navigate to the "Users" page
+2. Click "Delete" on the user row
+3. Confirm deletion
+
+**Warning:** Deleting a user removes all access and associated data.
+
+### Role Management
+
+#### Viewing Roles
+
+1. Navigate to the "Users" page
+2. Click the "Roles" tab
+3. View all roles with their permissions
+
+#### Creating a Role
+
+1. Navigate to the "Users" page
+2. Click the "Roles" tab
+3. Click "Add Role"
+4. Enter role name and description
+5. Select permissions
+6. Click "Create Role"
+
+#### Managing Permissions
+
+Assign permissions to roles:
+
+- **users.read**: View user information
+- **users.write**: Create and update users
+- **users.delete**: Delete users
+- **nodes.read**: View node information
+- **nodes.write**: Configure nodes
+- **nodes.delete**: Delete nodes
+- **config.read**: View configurations
+- **config.write**: Modify configurations
+- **config.rollback**: Rollback configurations
+- **monitoring.read**: View monitoring data
+
+---
+
+## Best Practices
+
+### Security
+
+1. **Use Strong Passwords**: Minimum 12 characters with mixed case, numbers, and symbols
+2. **Enable Two-Factor Authentication**: When available, enable 2FA for additional security
+3. **Change Default Passwords**: Immediately change default credentials
+4. **Regular Password Updates**: Update passwords every 90 days
+5. **Limit Admin Access**: Grant admin privileges only when necessary
+
+### Configuration Management
+
+1. **Document Changes**: Always include meaningful change summaries
+2. **Create Rollback Points**: Mark important configurations as rollback points
+3. **Test Changes**: Test configuration changes in a staging environment first
+4. **Backup Before Major Changes**: Create backups before significant configuration changes
+5. **Review Configuration History**: Regularly review configuration history for unintended changes
+
+### Monitoring
+
+1. **Set Appropriate Thresholds**: Configure alert thresholds based on your environment
+2. **Acknowledge Alerts Promptly**: Review and acknowledge alerts in a timely manner
+3. **Regular Review**: Schedule regular reviews of monitoring data and trends
+4. **Investigate Anomalies**: Investigate any unusual patterns or spikes in metrics
+
+### Node Management
+
+1. **Consistent Naming**: Use a consistent naming convention for nodes
+2. **Tag Organization**: Use tags to organize nodes by location, type, or function
+3. **Regular Connection Tests**: Periodically test node connections
+4. **Firmware Updates**: Keep node firmware up to date
+5. **Document Node Changes**: Document any changes to node configuration or location
+
+---
+
+## Frequently Asked Questions
+
+### General
+
+**Q: What browsers are supported?**
+A: VyOS Web UI supports the latest versions of Chrome, Firefox, Safari, and Edge.
+
+**Q: Can I access the UI from my mobile device?**
+A: Yes, the UI is responsive and works on mobile devices.
+
+**Q: How do I report a bug or request a feature?**
+A: Please use the project's GitHub issues page to report bugs or request features.
+
+### Authentication and Access
+
+**Q: I forgot my password. How do I reset it?**
+A: Contact your system administrator to reset your password. If you are an admin, you may need to use the command-line interface to reset the password.
+
+**Q: How long do sessions stay active?**
+A: Sessions expire after 60 minutes of inactivity by default. This can be configured by your administrator.
+
+**Q: Can I have multiple active sessions?**
+A: Yes, you can be logged in from multiple browsers or devices simultaneously.
+
+### Configuration
+
+**Q: What happens if I make a configuration mistake?**
+A: Configuration changes are tracked in the configuration history. You can roll back to any previous configuration version.
+
+**Q: How often should I create configuration backups?**
+A: We recommend creating a backup before any major configuration change and at least weekly for routine backups.
+
+**Q: Can I schedule configuration changes?**
+A: Currently, scheduled changes are not supported. All changes are applied immediately.
+
+### Monitoring and Alerts
+
+**Q: How do I configure alert thresholds?**
+A: Alert thresholds are configured in System > Settings by administrators. Contact your admin to adjust thresholds.
+
+**Q: Can I receive alerts via email?**
+A: Email notifications are not currently supported but are planned for a future release.
+
+**Q: How far back does monitoring data go?**
+A: Monitoring data is retained for 90 days by default. This can be configured by your administrator.
+
+### Nodes
+
+**Q: What node types are supported?**
+A: Router, Switch, Firewall, Load Balancer, and Other (custom types).
+
+**Q: How many nodes can I manage?**
+A: There is no hard limit on the number of nodes. Performance will depend on your system resources.
+
+**Q: Can I organize nodes into groups?**
+A: Use tags to organize nodes. You can filter and search by tags.
+
+### Troubleshooting
+
+**Q: The Dashboard is not updating. What should I do?**
+A:
+1. Refresh your browser (F5 or Cmd+R)
+2. Check your internet connection
+3. Try clearing your browser cache
+4. If the issue persists, contact your administrator
+
+**Q: I can't connect to a node. What should I do?**
+A:
+1. Verify the node is powered on and connected to the network
+2. Check the node's IP address and port configuration
+3. Test network connectivity using the "Test Connection" button
+4. Check firewall rules to ensure the required ports are open
+5. Contact your network administrator if issues persist
+
+**Q: I see a "Database Error" message. What does this mean?**
+A: This indicates a problem with the application database. Contact your system administrator immediately.
+
+**Q: The application is slow. What can I do?**
+A:
+1. Check your internet connection speed
+2. Try a different browser
+3. Clear your browser cache
+4. If the issue persists, contact your administrator to check server performance
+
+---
+
+**Version**: 0.1.0
+**Last Updated**: February 2025

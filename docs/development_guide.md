@@ -1,601 +1,811 @@
-# VyOS Web UI 开发指南
+# VyOS Web UI - Development Guide
 
-## 概述
+## Table of Contents
 
-本指南为开发团队提供在 VyOS Web UI 项目中工作的详细指导，包括开发环境设置、代码规范、最佳实践和协作流程。
+- [Overview](#overview)
+- [Development Environment Setup](#development-environment-setup)
+- [Backend Development](#backend-development)
+- [Frontend Development](#frontend-development)
+- [Code Conventions](#code-conventions)
+- [Git Workflow](#git-workflow)
+- [Testing Guidelines](#testing-guidelines)
+- [Debugging](#debugging)
+- [Contributing Guidelines](#contributing-guidelines)
 
-## 开发环境设置
+---
 
-### 前端开发环境
+## Overview
 
-#### 系统要求
-- Node.js 18+ (推荐使用 Node.js 20+)
-- npm 8+ 或 yarn 1.22+
-- Git 2.0+
+This guide provides comprehensive information for developers working on the VyOS Web UI project. It covers environment setup, development practices, testing, and contribution guidelines.
 
-#### 安装步骤
+---
+
+## Development Environment Setup
+
+### Prerequisites
+
+Ensure you have the following installed:
+
+- **Rust**: 1.70 or later
+- **Node.js**: 18 or later
+- **npm**: 9 or later
+- **Git**: Latest stable version
+- **SQLite** (for development)
+
+### IDE Recommendations
+
+- **Backend**: VS Code with rust-analyzer extension, or CLion with Rust plugin
+- **Frontend**: VS Code with ESLint, Prettier, and TypeScript extensions
+
+### Cloning the Repository
+
 ```bash
-# 1. 克隆项目
-git clone https://github.com/vyos/web-ui.git
-cd vyos-web-ui
-
-# 2. 进入前端目录
-cd frontend
-
-# 3. 安装依赖
-npm install
-# 或使用 yarn
-yarn install
-
-# 4. 启动开发服务器
-npm run dev
-# 或
-yarn dev
+git clone <repository-url>
+cd new_ai
 ```
 
-#### 开发配置
-创建 `.env.development` 文件：
-```
-VITE_API_BASE_URL=http://localhost:8080/api
-VITE_WS_URL=ws://localhost:8080/ws
-```
+### Environment Configuration
 
-### 后端开发环境
+1. Copy the environment template:
 
-#### 系统要求
-- Rust 1.75+
-- Cargo (随 Rust 一起安装)
-- SQLite 3.25+ 或 MySQL 8.0+
-
-#### 安装步骤
 ```bash
-# 1. 确保 Rust 已安装
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source ~/.cargo/env
+cp .env.example .env
+```
 
-# 2. 检查 Rust 版本
-rustc --version
+2. Edit `.env` with your local settings:
 
-# 3. 进入后端目录
+```env
+# Server Configuration
+SERVER_HOST=127.0.0.1
+SERVER_PORT=8080
+APP_ENV=development
+
+# Database Configuration
+DATABASE_URL=sqlite:data/database.db
+
+# Authentication
+JWT_SECRET_KEY=your-dev-secret-key
+JWT_EXPIRATION_MINUTES=60
+
+# Logging
+LOG_LEVEL=debug
+
+# VyOS API Configuration (optional)
+VYOS_API_URL=https://your-vyos-node:8443
+VYOS_API_USERNAME=vyos
+VYOS_API_PASSWORD=your-password
+```
+
+---
+
+## Backend Development
+
+### Project Structure
+
+The backend follows a modular architecture:
+
+```
+backend/src/
+├── config/          # Configuration management
+├── db/              # Database initialization
+├── error/           # Error types and handling
+├── handlers/        # HTTP request handlers
+├── middleware/      # Request/response middleware
+├── models/          # Data models and DTOs
+├── services/        # Business logic
+├── websocket/       # WebSocket handlers
+└── main.rs          # Application entry point
+```
+
+### Building
+
+```bash
 cd backend
 
-# 4. 检查依赖
-cargo check
+# Debug build
+cargo build
 
-# 5. 启动开发服务器
+# Release build
+cargo build --release
+```
+
+### Running the Development Server
+
+```bash
+cd backend
 cargo run
 ```
 
-#### 开发配置
-创建 `.env` 文件：
+The server will start on `http://127.0.0.1:8080`
+
+### Cargo Commands
+
+```bash
+# Check code without building
+cargo check
+
+# Run tests
+cargo test
+
+# Run tests with output
+cargo test -- --nocapture
+
+# Check for unused dependencies
+cargo +nightly udeps
+
+# Update dependencies
+cargo update
+
+# Format code
+cargo fmt
+
+# Run linter
+cargo clippy
+
+# Generate documentation
+cargo doc --open
 ```
-DATABASE_URL=sqlite:data/vyos_dev.db
-JWT_SECRET_KEY=dev_super_secret_key_that_should_be_long_enough
-APP_ENV=development
-SERVER_HOST=127.0.0.1
-SERVER_PORT=8080
-LOG_LEVEL=debug
-VYOS_API_BASE_URL=http://localhost:8443/api
+
+### Adding Dependencies
+
+Edit `backend/Cargo.toml`:
+
+```toml
+[dependencies]
+# Add new dependencies here
 ```
 
-## 代码规范
+Then run:
 
-### 前端代码规范
+```bash
+cargo build
+```
 
-#### TypeScript 规范
-- 使用 TypeScript 严格模式
-- 所有变量、函数、接口必须有明确的类型注解
-- 优先使用类型而不是接口（除非需要声明合并）
-- 使用 PascalCase 命名接口和类型
-- 使用 camelCase 命名变量和函数
-- 使用 UPPER_SNAKE_CASE 命名常量
+### Backend Code Conventions
 
-```typescript
-// ✅ 正确
-interface UserProfile {
-  id: string;
-  username: string;
-  email: string;
-  roles: UserRole[];
+#### Naming
+
+- Use `snake_case` for variables, functions, and modules
+- Use `PascalCase` for types and structs
+- Use `SCREAMING_SNAKE_CASE` for constants
+
+```rust
+// Good
+fn get_user_by_id(user_id: Uuid) -> Result<User> {
+    // ...
 }
 
-type UserRole = 'admin' | 'user' | 'guest';
+const MAX_CONNECTIONS: usize = 100;
 
-const API_ENDPOINTS = {
-  USERS: '/api/v1/users',
-  AUTH: '/api/v1/auth',
-} as const;
-```
-
-#### React 组件规范
-- 每个文件只包含一个组件
-- 使用函数组件和 Hooks
-- 合理使用自定义 Hooks 分离逻辑
-- 组件文件命名使用 PascalCase
-- 使用有意义的 prop 名称
-
-```typescript
-// ✅ 正确
-interface UserCardProps {
-  user: UserProfile;
-  onEdit: (userId: string) => void;
-  onDelete: (userId: string) => void;
+struct UserProfile {
+    user_id: Uuid,
+    username: String,
 }
 
-const UserCard: React.FC<UserCardProps> = ({ user, onEdit, onDelete }) => {
-  const [loading, setLoading] = useState(false);
+// Bad
+fn GetUserByID(userID: Uuid) -> Result<User> { ... }
+const max_connections: usize = 100;
+struct user_profile { ... }
+```
 
-  const handleEdit = useCallback(() => {
-    setLoading(true);
-    onEdit(user.id);
-  }, [user.id, onEdit]);
+#### Error Handling
+
+Use the `AppResult<T>` type alias for results:
+
+```rust
+use crate::error::AppResult;
+
+pub async fn get_user(user_id: Uuid) -> AppResult<User> {
+    // ...
+}
+```
+
+#### Database Operations
+
+Use SQLx with parameterized queries:
+
+```rust
+use sqlx::query_as;
+
+pub async fn get_user(pool: &Pool, id: Uuid) -> AppResult<User> {
+    let user = query_as!(
+        User,
+        "SELECT id, username, email FROM users WHERE id = ?",
+        id
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(user)
+}
+```
+
+#### Handler Pattern
+
+Handlers should be thin and delegate to services:
+
+```rust
+// handlers/user.rs
+use actix_web::{web, HttpResponse};
+use crate::services::UserService;
+
+pub async fn get_user(
+    path: web::Path<Uuid>,
+    service: web::Data<UserService>,
+) -> AppResult<HttpResponse> {
+    let user = service.get_user(path.into_inner()).await?;
+    Ok(HttpResponse::Ok().json(user))
+}
+```
+
+#### Service Layer
+
+Services contain business logic:
+
+```rust
+// services/user.rs
+use crate::error::AppResult;
+use crate::models::User;
+use crate::db::Pool;
+
+pub struct UserService {
+    pool: Pool,
+}
+
+impl UserService {
+    pub fn new(pool: Pool) -> Self {
+        Self { pool }
+    }
+
+    pub async fn get_user(&self, id: Uuid) -> AppResult<User> {
+        // Business logic here
+    }
+}
+```
+
+---
+
+## Frontend Development
+
+### Project Structure
+
+The frontend follows a component-based architecture:
+
+```
+frontend/src/
+├── components/
+│   ├── admin/           # Admin-specific components
+│   ├── auth/            # Authentication components
+│   ├── common/          # Shared components
+│   ├── config/          # Configuration components
+│   ├── dashboard/       # Dashboard components
+│   ├── layout/          # Layout components
+│   ├── nodes/           # Node management components
+│   ├── system/          # System components
+│   └── ui/              # UI primitives (Radix UI)
+├── contexts/            # React contexts
+├── hooks/               # Custom React hooks
+├── pages/               # Page components
+├── services/            # API services
+├── stores/              # Zustand state stores
+├── utils/               # Utility functions
+├── App.tsx              # Root component
+└── main.tsx             # Entry point
+```
+
+### Installing Dependencies
+
+```bash
+cd frontend
+npm install
+```
+
+### Running the Development Server
+
+```bash
+cd frontend
+npm run dev
+```
+
+The frontend will start on `http://localhost:3000`
+
+### NPM Scripts
+
+```bash
+# Development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Lint code
+npm run lint
+
+# Format code
+npm run format
+```
+
+### Adding Dependencies
+
+```bash
+# Runtime dependencies
+npm install package-name
+
+# Development dependencies
+npm install -D package-name
+
+# TypeScript types
+npm install -D @types/package-name
+```
+
+### Frontend Code Conventions
+
+#### Component Structure
+
+```tsx
+// Good: Functional component with TypeScript
+import { useState } from 'react';
+
+interface ComponentProps {
+  title: string;
+  onAction: () => void;
+}
+
+export const MyComponent: React.FC<ComponentProps> = ({
+  title,
+  onAction
+}) => {
+  const [isActive, setIsActive] = useState(false);
 
   return (
-    <div className="user-card">
-      <h3>{user.username}</h3>
-      <button onClick={handleEdit} disabled={loading}>
-        {loading ? 'Loading...' : 'Edit'}
+    <div className="component">
+      <h1>{title}</h1>
+      <button onClick={() => setIsActive(!isActive)}>
+        {isActive ? 'Active' : 'Inactive'}
       </button>
+      <button onClick={onAction}>Action</button>
     </div>
   );
 };
 ```
 
-#### 文件组织
-```
-src/
-├── components/           # 可复用 UI 组件
-│   ├── common/         # 通用组件 (Button, Input, Modal)
-│   ├── forms/          # 表单组件 (LoginForm, UserForm)
-│   └── layout/         # 布局组件 (Header, Sidebar, Footer)
-├── pages/              # 页面组件
-│   ├── Auth/           # 认证相关页面
-│   ├── Dashboard/      # 仪表板页面
-│   ├── Network/        # 网络配置页面
-│   └── Monitoring/     # 监控页面
-├── services/           # API 服务和业务逻辑
-├── hooks/              # 自定义 React Hooks
-├── contexts/           # React Context
-├── types/              # TypeScript 类型定义
-├── utils/              # 工具函数
-└── assets/             # 静态资源
-```
+#### State Management
 
-#### ESLint 和 Prettier 配置
-```json
-// .eslintrc.json
-{
-  "extends": [
-    "react-app",
-    "react-app/jest"
-  ],
-  "rules": {
-    "no-unused-vars": "error",
-    "prefer-const": "error",
-    "@typescript-eslint/explicit-function-return-type": "warn"
-  }
-}
-```
+Use Zustand for global state:
 
-### 后端代码规范
+```tsx
+// stores/exampleStore.ts
+import { create } from 'zustand';
 
-#### Rust 代码规范
-- 遵循 Rust 官方代码风格指南
-- 使用 `cargo fmt` 格式化代码
-- 使用 `cargo clippy` 进行代码检查
-- 优先使用 `Result` 和 `Option` 进行错误处理
-- 使用有意义的变量和函数名
-
-```rust
-// ✅ 正确
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct User {
-    pub id: Uuid,
-    pub username: String,
-    pub email: String,
-    pub created_at: chrono::DateTime<chrono::Utc>,
+interface ExampleState {
+  items: string[];
+  addItem: (item: string) => void;
+  removeItem: (index: number) => void;
 }
 
-#[derive(Debug, Deserialize)]
-pub struct CreateUserRequest {
-    pub username: String,
-    pub email: String,
-    pub password: String,
-}
+export const useExampleStore = create<ExampleState>((set) => ({
+  items: [],
+  addItem: (item) => set((state) => ({ items: [...state.items, item] })),
+  removeItem: (index) =>
+    set((state) => ({
+      items: state.items.filter((_, i) => i !== index),
+    })),
+}));
 ```
 
-#### 项目结构
-```
-backend/
-├── src/
-│   ├── main.rs
-│   ├── models/          # 数据模型 (structs, DTOs)
-│   │   ├── user.rs
-│   │   ├── network.rs
-│   │   └── mod.rs
-│   ├── handlers/        # API 处理器 (controllers)
-│   │   ├── auth.rs
-│   │   ├── user.rs
-│   │   ├── network.rs
-│   │   └── mod.rs
-│   ├── services/        # 业务逻辑
-│   │   ├── auth_service.rs
-│   │   ├── user_service.rs
-│   │   ├── network_service.rs
-│   │   └── mod.rs
-│   ├── middleware/      # 中间件
-│   │   ├── auth.rs
-│   │   ├── cors.rs
-│   │   └── mod.rs
-│   ├── error/           # 错误定义
-│   ├── utils/           # 工具函数
-│   └── lib.rs
-├── migrations/          # 数据库迁移
-├── tests/               # 集成测试
-├── Cargo.toml
-└── Cargo.lock
-```
+#### API Services
 
-## API 设计规范
+Use Axios with interceptors:
 
-### RESTful API 约定
-- 使用名词复数形式表示资源集合
-- 使用 HTTP 方法表示操作类型
-- 使用标准 HTTP 状态码
-- 返回 JSON 格式的响应
+```tsx
+// services/ExampleService.ts
+import axios from 'axios';
 
-```
-GET    /api/v1/users          # 获取用户列表
-POST   /api/v1/users          # 创建新用户
-GET    /api/v1/users/{id}     # 获取特定用户
-PUT    /api/v1/users/{id}     # 更新用户（完全替换）
-PATCH  /api/v1/users/{id}     # 部分更新用户
-DELETE /api/v1/users/{id}     # 删除用户
-```
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
-### 响应格式
-```json
-{
-  "success": true,
-  "data": {},
-  "message": "Operation successful",
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-### 错误响应格式
-```json
-{
-  "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Validation error occurred",
-    "details": [
-      {
-        "field": "email",
-        "message": "Email must be a valid email address"
-      }
-    ]
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
   },
-  "timestamp": "2023-12-01T10:00:00Z"
-}
-```
-
-## 数据库设计规范
-
-### SQLx 模式
-- 使用 SQLx 的编译时查询验证
-- 使用 UUID 作为主键
-- 遵循数据库命名约定
-- 使用适当的数据类型
-
-```rust
-// 示例：用户表查询
-#[derive(sqlx::FromRow)]
-pub struct User {
-    pub id: Uuid,
-    pub username: String,
-    pub email: String,
-    pub password_hash: String,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
-}
-
-// 使用编译时验证的查询
-sqlx::query_as!(
-    User,
-    "SELECT id, username, email, password_hash, created_at, updated_at
-     FROM users
-     WHERE username = $1",
-    username
-)
-.fetch_one(&pool)
-.await?;
-```
-
-### 迁移文件命名
-```
-001_initial_schema.sql    # 初始模式
-002_add_users_table.sql   # 添加用户表
-003_update_user_fields.sql # 修改用户字段
-```
-
-## 测试策略
-
-### 前端测试
-
-#### 单元测试
-使用 Vitest + React Testing Library：
-```typescript
-// __tests__/UserCard.test.tsx
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import UserCard from '../components/UserCard';
-
-const mockUser = {
-  id: '1',
-  username: 'testuser',
-  email: 'test@example.com',
-};
-
-describe('UserCard', () => {
-  it('renders user information correctly', () => {
-    render(<UserCard user={mockUser} onEdit={vi.fn()} onDelete={vi.fn()} />);
-
-    expect(screen.getByText('testuser')).toBeInTheDocument();
-    expect(screen.getByText('test@example.com')).toBeInTheDocument();
-  });
-
-  it('calls onEdit when edit button is clicked', () => {
-    const onEdit = vi.fn();
-    render(<UserCard user={mockUser} onEdit={onEdit} onDelete={vi.fn()} />);
-
-    fireEvent.click(screen.getByText('Edit'));
-    expect(onEdit).toHaveBeenCalledWith('1');
-  });
 });
+
+// Add auth token interceptor
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const exampleService = {
+  async getData() {
+    const response = await apiClient.get('/endpoint');
+    return response.data;
+  },
+};
 ```
 
-#### 组件测试
-- 使用 React Testing Library 进行用户行为测试
-- 测试所有用户交互路径
-- 验证错误处理逻辑
-- 测试加载状态
+#### Custom Hooks
 
-### 后端测试
+```tsx
+// hooks/useExample.ts
+import { useEffect, useState } from 'react';
 
-#### 单元测试
+export function useExample(param: string) {
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const result = await fetchData(param);
+        setData(result);
+      } catch (err) {
+        setError(err as Error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [param]);
+
+  return { data, isLoading, error };
+}
+```
+
+#### TypeScript Best Practices
+
+```tsx
+// Define interfaces for API responses
+interface ApiResponse<T> {
+  data: T;
+  message?: string;
+}
+
+// Define union types for known values
+type Status = 'online' | 'offline' | 'degraded';
+
+// Use proper typing for props
+interface ButtonProps {
+  variant?: 'primary' | 'secondary' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  children: React.ReactNode;
+  onClick?: () => void;
+}
+```
+
+---
+
+## Code Conventions
+
+### General Principles
+
+- **DRY**: Don't Repeat Yourself
+- **KISS**: Keep It Simple, Stupid
+- **SOLID**: Follow SOLID principles
+- **Testability**: Write testable code
+
+### Rust-Specific Guidelines
+
+- Use `cargo fmt` for consistent formatting
+- Run `cargo clippy` before committing
+- Document public APIs with `///` comments
+- Prefer idiomatic Rust patterns
+
+### TypeScript/React-Specific Guidelines
+
+- Use strict TypeScript mode
+- Define interfaces for all props
+- Use functional components and hooks
+- Avoid `any` type - use `unknown` if necessary
+- Use Tailwind CSS for styling
+- Follow the React hooks rules
+
+### File Naming
+
+- **Rust**: `snake_case.rs`
+- **TypeScript**: `PascalCase.ts` for components, `camelCase.ts` for utilities
+- **CSS**: `kebab-case.css`
+
+---
+
+## Git Workflow
+
+### Branch Strategy
+
+- `master`: Main production branch
+- `develop`: Development integration branch
+- `feature/*`: New features
+- `bugfix/*`: Bug fixes
+- `hotfix/*`: Critical production fixes
+
+### Commit Message Format
+
+Follow conventional commits:
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+**Types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, etc.)
+- `refactor`: Code refactoring
+- `test`: Adding or updating tests
+- `chore`: Maintenance tasks
+
+**Examples:**
+
+```
+feat(auth): add JWT token refresh
+
+Implement automatic token refresh when the access token expires.
+Users will stay logged in without needing to re-authenticate.
+
+Closes #123
+```
+
+```
+fix(api): resolve CORS issue in production
+
+Update CORS configuration to properly handle production domain.
+This fixes login failures in staging environment.
+
+Fixes #456
+```
+
+### Development Workflow
+
+1. Create a feature branch:
+
+```bash
+git checkout -b feature/your-feature-name
+```
+
+2. Make your changes and commit:
+
+```bash
+git add .
+git commit -m "feat(your-scope): your commit message"
+```
+
+3. Push to remote:
+
+```bash
+git push origin feature/your-feature-name
+```
+
+4. Create a pull request to `develop` or `master`
+
+### Pull Request Guidelines
+
+- Title should follow commit message format
+- Include description of changes
+- Reference related issues
+- Ensure all tests pass
+- Update documentation if needed
+
+---
+
+## Testing Guidelines
+
+### Backend Testing
+
+#### Unit Tests
+
 ```rust
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::sqlite::SqlitePool;
-    use tokio;
 
-    #[tokio::test]
-    async fn test_create_user_success() {
-        let pool = setup_test_db().await;
-        let service = UserService::new(pool);
+    #[test]
+    fn test_example() {
+        let result = calculate(2, 2);
+        assert_eq!(result, 4);
+    }
 
-        let request = CreateUserRequest {
-            username: "testuser".to_string(),
-            email: "test@example.com".to_string(),
-            password: "password123".to_string(),
-        };
-
-        let result = service.create_user(request).await;
-
-        assert!(result.is_ok());
-        let user = result.unwrap();
-        assert_eq!(user.username, "testuser");
+    #[test]
+    fn test_error_case() {
+        let result = calculate(-1, 2);
+        assert!(result.is_err());
     }
 }
 ```
 
-#### 集成测试
+#### Integration Tests
+
 ```rust
-#[cfg(test)]
-mod integration_tests {
-    use axum::{
-        body::Body,
-        http::{Request, StatusCode},
-    };
-    use tower::ServiceExt;
+#[actix_web::test]
+async fn test_api_endpoint() {
+    let app = test::init_service(|| App::new().service(handler)).await;
 
-    #[sqlx::test]
-    async fn test_get_user_endpoint(pool: SqlitePool) {
-        let app = setup_test_app(pool).await;
+    let req = test::TestRequest::get()
+        .uri("/api/endpoint")
+        .to_request();
 
-        let response = app
-            .oneshot(
-                Request::builder()
-                    .method("GET")
-                    .uri("/api/v1/users/123")
-                    .header("content-type", "application/json")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-    }
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), http::StatusCode::OK);
 }
 ```
 
-## Git 工作流
+#### Running Tests
 
-### 分支策略
-- `main`: 生产代码
-- `develop`: 开发代码
-- `feature/*`: 功能分支
-- `bugfix/*`: 修复分支
-- `release/*`: 发布准备
-
-### 提交信息规范
-使用约定式提交格式：
-```
-feat: 添加用户认证功能
-^--^  ^---------------^
-|     |
-|     +-> 简短的描述
-|
-+-------> 类型: feat, fix, docs, style, refactor, test, chore
-```
-
-常用类型：
-- `feat`: 新功能
-- `fix`: 修复错误
-- `docs`: 文档更新
-- `style`: 代码格式调整
-- `refactor`: 重构代码
-- `test`: 添加测试
-- `chore`: 构建过程或辅助工具变动
-
-### Pull Request 规范
-- 一个 PR 只解决一个问题
-- 标题简洁明了，描述详细具体
-- 包含相关的测试
-- 通过所有 CI 检查
-- 代码审查通过
-
-## 质量保证
-
-### 代码审查清单
-- [ ] 代码符合项目规范
-- [ ] 所有测试通过
-- [ ] 适当的错误处理
-- [ ] 无明显的性能问题
-- [ ] 安全漏洞检查
-- [ ] 文档更新
-
-### 性能考虑
-- 避免不必要的组件重渲染
-- 使用适当的缓存策略
-- 优化数据库查询
-- 实现适当的分页
-
-### 安全考虑
-- 输入验证和清理
-- SQL 注入防护
-- XSS 防护
-- 认证和授权
-- 敏感信息处理
-
-## 部署流程
-
-### 开发部署
 ```bash
-# 前端构建
-cd frontend
-npm run build
-
-# 后端构建
-cd backend
-cargo build --release
-```
-
-### 生产部署
-- 使用 Docker 容器化部署
-- 环境变量配置
-- 数据库迁移自动化
-- 健康检查端点
-
-## 调试技巧
-
-### 前端调试
-- 使用 React DevTools
-- Chrome 开发者工具
-- 日志记录
-- TypeScript 错误理解
-
-### 后端调试
-- 使用 `tracing` crate 进行日志记录
-- PostgreSQL/SQLite 的 EXPLAIN ANALYZE
-- 使用 `cargo expand` 查看宏展开
-- 使用 `println!` 进行简单调试
-
-## 常见问题解决
-
-### 依赖冲突
-- 使用 `cargo update` 更新依赖
-- 检查 `Cargo.lock` 文件
-- 必要时使用 `[patch]` 进行依赖替换
-
-### TypeScript 类型错误
-- 检查类型定义文件
-- 使用 `as` 进行类型断言（谨慎使用）
-- 创建适当的类型定义
-
-### 数据库迁移问题
-- 检查迁移文件顺序
-- 验证 SQL 语法
-- 备份数据后再迁移
-
-## 有用的命令
-
-### 前端
-```bash
-# 安装依赖
-npm install
-
-# 启动开发服务器
-npm run dev
-
-# 运行测试
-npm run test
-
-# 构建生产版本
-npm run build
-
-# 运行 linter
-npm run lint
-
-# 格式化代码
-npm run format
-```
-
-### 后端
-```bash
-# 检查代码
-cargo check
-
-# 运行测试
+# Run all tests
 cargo test
 
-# 构建项目
-cargo build
+# Run specific test
+cargo test test_name
 
-# 运行项目
-cargo run
+# Run tests with output
+cargo test -- --nocapture
 
-# 运行 clippy
-cargo clippy
-
-# 格式化代码
-cargo fmt
+# Run tests in release mode
+cargo test --release
 ```
 
-## 联系和支持
+### Frontend Testing
 
-如有疑问，请联系：
-- 项目负责人: [姓名] ([邮箱])
-- 技术支持: [支持渠道]
-- 代码仓库: [仓库链接]
+#### Unit Tests with Vitest
 
-## 附录
+```tsx
+import { describe, it, expect } from 'vitest';
+import { renderHook } from '@testing-library/react';
+import { useExample } from './useExample';
 
-### 有用的资源
-- [Rust 官方文档](https://doc.rust-lang.org/)
-- [React 官方文档](https://react.dev/)
-- [Axum 框架文档](https://docs.rs/axum/)
-- [SQLx 文档](https://docs.rs/sqlx/)
+describe('useExample', () => {
+  it('should return initial state', () => {
+    const { result } = renderHook(() => useExample());
+    expect(result.current.isLoading).toBe(true);
+  });
+});
+```
 
-### 工具推荐
-- IDE: VS Code, IntelliJ IDEA
-- 数据库工具: DBeaver, pgAdmin
-- API 测试: Postman, Insomnia
-- Git GUI: SourceTree, GitKraken
+#### Component Tests
+
+```tsx
+import { render, screen } from '@testing-library/react';
+import { MyComponent } from './MyComponent';
+
+describe('MyComponent', () => {
+  it('should render title', () => {
+    render(<MyComponent title="Test" />);
+    expect(screen.getByText('Test')).toBeInTheDocument();
+  });
+});
+```
+
+#### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+---
+
+## Debugging
+
+### Backend Debugging
+
+#### Logging
+
+Use the `tracing` crate:
+
+```rust
+use tracing::{info, warn, error};
+
+pub async fn handler() -> AppResult<HttpResponse> {
+    info!("Processing request");
+    // ...
+    warn!("Unexpected value: {}", value);
+    // ...
+    error!("Operation failed: {:?}", error);
+}
+```
+
+#### VS Code Configuration
+
+Create `.vscode/launch.json`:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug executable 'vyos-web-ui-backend'",
+      "cargo": {
+        "args": ["build", "--package=vyos-web-ui-backend"],
+        "filter": {
+          "name": "vyos-web-ui-backend",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}/backend"
+    }
+  ]
+}
+```
+
+### Frontend Debugging
+
+#### React DevTools
+
+Install React DevTools browser extension for component inspection.
+
+#### Browser Console
+
+Use console logging:
+
+```tsx
+console.log('Data:', data);
+console.warn('Warning message');
+console.error('Error:', error);
+```
+
+#### Network Tab
+
+Use browser DevTools Network tab to inspect API requests and responses.
+
+---
+
+## Contributing Guidelines
+
+### Before Contributing
+
+1. Read this development guide
+2. Check existing issues and pull requests
+3. Create an issue for major changes before implementing
+
+### Code Review Process
+
+1. All changes require pull request
+2. At least one approval required
+3. All tests must pass
+4. Code must follow conventions
+
+### Documentation
+
+- Update API documentation for new endpoints
+- Update component documentation for new features
+- Add comments for complex logic
+- Keep README files current
+
+### Issue Reporting
+
+When reporting issues, include:
+
+- Description of the problem
+- Steps to reproduce
+- Expected behavior
+- Actual behavior
+- Environment information
+- Screenshots/logs if applicable
+
+---
+
+**Version**: 0.1.0
+**Last Updated**: February 2025
