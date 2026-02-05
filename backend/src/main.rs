@@ -13,8 +13,9 @@ use std::env;
 use tracing::info;
 
 use config::{AppConfig, init_database, init_logging};
-use db::create_database;
+use db::{Database, create_database};
 use error::AppResult;
+use services::{AuthService, UserService};
 use websocket::ConnectionManager;
 
 #[actix_web::main]
@@ -32,6 +33,11 @@ async fn main() -> AppResult<()> {
     // Initialize database
     let pool = init_database(&config).await?;
     let db = create_database(pool).await?;
+
+    // Create services
+    let db_clone = db.get_ref().clone();
+    let auth_service = AuthService::new(&config, db_clone.clone());
+    let user_service = UserService::new(db_clone);
 
     // Create WebSocket connection manager
     let connection_manager = ConnectionManager::new();
@@ -53,6 +59,8 @@ async fn main() -> AppResult<()> {
         App::new()
             .app_data(web::Data::new(config.clone()))
             .app_data(db.clone())
+            .app_data(web::Data::new(auth_service.clone()))
+            .app_data(web::Data::new(user_service.clone()))
             .app_data(web::Data::new(connection_manager.clone()))
             .wrap(cors)
             .wrap(Logger::default())
@@ -62,10 +70,12 @@ async fn main() -> AppResult<()> {
                     .route("/health", web::get().to(handlers::health::health_check))
                     .route("/health/detailed", web::get().to(handlers::health::detailed_health_check))
                     // Authentication endpoints
+                    .route("/auth/register", web::post().to(handlers::auth::register))
                     .route("/auth/login", web::post().to(handlers::auth::login))
                     .route("/auth/logout", web::post().to(handlers::auth::logout))
                     .route("/auth/refresh", web::post().to(handlers::auth::refresh_token))
                     .route("/auth/validate", web::post().to(handlers::auth::validate_token))
+                    .route("/auth/me", web::get().to(handlers::auth::get_current_user))
                     // User endpoints
                     .route("/users/me", web::get().to(handlers::user::get_profile))
                     .route("/users/me", web::put().to(handlers::user::update_profile))

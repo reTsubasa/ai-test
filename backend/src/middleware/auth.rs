@@ -1,7 +1,7 @@
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
     error::ErrorUnauthorized,
-    web, Error, HttpMessage,
+    web, Error, FromRequest, HttpMessage,
 };
 use futures_util::future::LocalBoxFuture;
 use std::{
@@ -12,6 +12,37 @@ use std::{
 
 use crate::error::AppError;
 use crate::models::auth::Claims;
+use crate::services::AuthService;
+
+/// Extract claims from request extension
+/// This helper function is used by handlers to get the validated claims
+pub fn extract_claims(req: &actix_web::HttpRequest) -> Result<Claims, AppError> {
+    req.extensions()
+        .get::<Claims>()
+        .cloned()
+        .ok_or_else(|| AppError::Auth("Authentication required".to_string()))
+}
+
+/// Helper to extract claims as a FromRequest implementation
+impl FromRequest for Claims {
+    type Error = AppError;
+    type Future = Ready<Result<Self, Self::Error>>;
+
+    fn from_request(req: &actix_web::HttpRequest, _: &mut actix_web::dev::Payload) -> Self::Future {
+        ready(extract_claims(req))
+    }
+}
+
+/// Validate JWT token using the auth service from app data
+fn validate_jwt_token_from_request(req: &ServiceRequest, token: &str) -> Result<Claims, AppError> {
+    // Get the auth service from app data
+    let auth_service = req
+        .app_data::<web::Data<AuthService>>()
+        .ok_or_else(|| AppError::Internal("Auth service not available".to_string()))?;
+
+    // Use the auth service to validate the token
+    auth_service.validate_token(token)
+}
 
 /// Authentication middleware factory
 pub struct AuthMiddleware;
@@ -65,8 +96,8 @@ where
                 if auth_value.starts_with("Bearer ") {
                     let token = &auth_value[7..];
 
-                    // Validate the token
-                    match validate_jwt_token(token) {
+                    // Validate the token using auth service from app data
+                    match validate_jwt_token_from_request(&req, token) {
                         Ok(claims) => {
                             // Attach claims to the request extensions
                             req.extensions_mut().insert(claims);
@@ -81,26 +112,9 @@ where
             }
 
             // If we reach here, authentication failed
-            Err(ErrorUnauthorized("Invalid or missing authentication token").into())
+            Err(ErrorUnauthorized("Invalid or missing authentication token".into()))
         })
     }
-}
-
-/// Validate JWT token and return claims
-fn validate_jwt_token(token: &str) -> Result<Claims, AppError> {
-    // In a real implementation, this would:
-    // 1. Decode and verify the JWT signature
-    // 2. Check expiration
-    // 3. Return the claims
-
-    // For now, return a mock claims object
-    // This would be replaced with actual JWT validation
-    Ok(Claims {
-        sub: "user_id".to_string(),
-        username: "user".to_string(),
-        exp: chrono::Utc::now().timestamp() + 3600,
-        iat: chrono::Utc::now().timestamp(),
-    })
 }
 
 /// Optional authentication middleware
@@ -156,7 +170,8 @@ where
                 if auth_value.starts_with("Bearer ") {
                     let token = &auth_value[7..];
 
-                    if let Ok(claims) = validate_jwt_token(token) {
+                    // Try to validate token (don't fail if invalid)
+                    if let Ok(claims) = validate_jwt_token_from_request(&req, token) {
                         req.extensions_mut().insert(claims);
                     }
                 }

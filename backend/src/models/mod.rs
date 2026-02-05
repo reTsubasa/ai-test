@@ -4,10 +4,12 @@
 //! organized by domain/functionality.
 
 pub mod auth;
+pub mod config;
 pub mod network;
 pub mod user;
 
 // Re-export models for convenience
 pub use auth::*;
+pub use config::*;
 pub use network::*;
 pub use user::*;

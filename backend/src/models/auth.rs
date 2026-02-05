@@ -49,3 +49,32 @@ pub struct TokenValidationResponse {
     pub username: Option<String>,
     pub expires_at: Option<i64>,
 }
+
+/// Register request payload
+#[derive(Debug, Deserialize, Validate)]
+pub struct RegisterRequest {
+    #[validate(length(min = 3, max = 50))]
+    pub username: String,
+
+    #[validate(email)]
+    pub email: String,
+
+    #[validate(length(min = 6))]
+    pub password: String,
+
+    pub full_name: Option<String>,
+}
+
+/// User response payload
+#[derive(Debug, Serialize)]
+pub struct UserResponse {
+    pub id: uuid::Uuid,
+    pub username: String,
+    pub email: String,
+    pub full_name: Option<String>,
+    pub role: crate::models::user::UserRole,
+    pub status: crate::models::user::UserStatus,
+    pub last_login: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
