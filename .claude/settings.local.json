@@ -9,7 +9,11 @@
       "Bash(git init:*)",
       "Bash(git commit:*)",
       "Bash(npm init:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run)",
+      "Bash(npm start)",
+      "Bash(npx tsc --noEmit --project /Users/hyc/Documents/new_ai/tsconfig.json)"
     ]
   }
 }

@@ -20,6 +20,17 @@ vyos-webui/
 └── README.md                # This file
 ```
 
+## Authentication System
+
+The VyOS Web UI includes a complete authentication system with:
+- User login and registration
+- Role-based access control (RBAC)
+- Session management with automatic timeout
+- Protected routes
+- Secure token handling
+
+For more information, see [Authentication System Documentation](docs/authentication-system.md)
+
 ## Getting Started
 
 ### Prerequisites
@@ -60,6 +71,7 @@ npm test
 - TypeScript type safety
 - Component-based architecture
 - API integration with VyOS
+- Complete authentication system
 
 ## Architecture
 
