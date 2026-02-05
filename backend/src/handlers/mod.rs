@@ -4,12 +4,16 @@
 //! Each handler is organized into submodules by feature/functionality.
 
 pub mod auth;
+pub mod config;
 pub mod health;
 pub mod network;
+pub mod system;
 pub mod user;
 
 // Re-export handlers for convenience
 pub use auth::*;
+pub use config::*;
 pub use health::*;
 pub use network::*;
+pub use system::*;
 pub use user::*;

@@ -15,7 +15,7 @@ use tracing::info;
 use config::{AppConfig, init_database, init_logging};
 use db::{Database, create_database};
 use error::AppResult;
-use services::{AuthService, UserService};
+use services::{AuthService, ConfigService, SystemService, UserService};
 use websocket::ConnectionManager;
 
 #[actix_web::main]
@@ -37,7 +37,9 @@ async fn main() -> AppResult<()> {
     // Create services
     let db_clone = db.get_ref().clone();
     let auth_service = AuthService::new(&config, db_clone.clone());
-    let user_service = UserService::new(db_clone);
+    let user_service = UserService::new(db_clone.clone());
+    let config_service = ConfigService::new(db_clone.clone(), config.clone());
+    let system_service = SystemService::new(config.clone());
 
     // Create WebSocket connection manager
     let connection_manager = ConnectionManager::new();
@@ -61,6 +63,8 @@ async fn main() -> AppResult<()> {
             .app_data(db.clone())
             .app_data(web::Data::new(auth_service.clone()))
             .app_data(web::Data::new(user_service.clone()))
+            .app_data(web::Data::new(config_service.clone()))
+            .app_data(web::Data::new(system_service.clone()))
             .app_data(web::Data::new(connection_manager.clone()))
             .wrap(cors)
             .wrap(Logger::default())
@@ -94,6 +98,36 @@ async fn main() -> AppResult<()> {
                     .route("/network/firewall/rules", web::get().to(handlers::network::get_firewall_rules))
                     .route("/network/firewall/rules", web::post().to(handlers::network::add_firewall_rule))
                     .route("/network/firewall/rules/{id}", web::delete().to(handlers::network::delete_firewall_rule))
+                    // Configuration endpoints
+                    .route("/config/retrieve", web::post().to(handlers::config::retrieve_config))
+                    .route("/config/configure", web::post().to(handlers::config::set_config))
+                    .route("/config/delete", web::post().to(handlers::config::delete_config))
+                    .route("/config/generate", web::post().to(handlers::config::generate_config))
+                    .route("/config/history", web::get().to(handlers::config::get_history))
+                    .route("/config/history/{id}", web::get().to(handlers::config::get_history_entry))
+                    .route("/config/rollback", web::post().to(handlers::config::rollback_config))
+                    .route("/config/diff/{id1}/{id2}", web::get().to(handlers::config::diff_configs))
+                    .route("/config/search", web::post().to(handlers::config::search_config))
+                    .route("/config/bulk", web::post().to(handlers::config::bulk_config_change))
+                    .route("/config/validate", web::post().to(handlers::config::validate_config))
+                    .route("/config/value", web::post().to(handlers::config::get_config_value))
+                    .route("/config/subtree", web::post().to(handlers::config::get_config_subtree))
+                    .route("/config/compare", web::post().to(handlers::config::compare_configs))
+                    .route("/config/discard", web::post().to(handlers::config::discard_config))
+                    .route("/config/stats", web::get().to(handlers::config::get_config_stats))
+                    // System endpoints
+                    .route("/system/reboot", web::post().to(handlers::system::reboot))
+                    .route("/system/poweroff", web::post().to(handlers::system::poweroff))
+                    .route("/system/reset", web::post().to(handlers::system::reset_configuration))
+                    .route("/system/images", web::get().to(handlers::system::list_images))
+                    .route("/system/images", web::post().to(handlers::system::manage_images))
+                    .route("/system/images/add", web::post().to(handlers::system::add_image))
+                    .route("/system/images/delete", web::post().to(handlers::system::delete_image))
+                    .route("/system/images/set-default", web::post().to(handlers::system::set_default_image))
+                    .route("/system/show", web::post().to(handlers::system::execute_show_command))
+                    .route("/system/info", web::get().to(handlers::system::get_system_info))
+                    .route("/system/operations/{operation_id}", web::get().to(handlers::system::check_operation_status))
+                    .route("/system/health", web::get().to(handlers::system::system_health_check))
             )
             .route("/ws", web::get().to(websocket::websocket_handler))
             .route("/ws/info", web::get().to(websocket::ws_info))
