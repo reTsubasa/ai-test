@@ -10,6 +10,7 @@ pub mod network;
 pub mod system_service;
 pub mod user;
 pub mod node_service;
+pub mod vyos_api;
 
 // Re-export services for convenience
 pub use auth::*;
@@ -19,3 +20,4 @@ pub use network::*;
 pub use node_service::*;
 pub use system_service::*;
 pub use user::*;
+pub use vyos_api::*;
