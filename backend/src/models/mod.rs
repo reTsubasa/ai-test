@@ -5,6 +5,7 @@
 
 pub mod auth;
 pub mod config;
+pub mod monitoring;
 pub mod network;
 pub mod node;
 pub mod system;
@@ -13,6 +14,7 @@ pub mod user;
 // Re-export models for convenience
 pub use auth::*;
 pub use config::*;
+pub use monitoring::*;
 pub use network::*;
 pub use node::*;
 pub use system::*;

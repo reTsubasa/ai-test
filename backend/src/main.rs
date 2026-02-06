@@ -16,7 +16,7 @@ use tracing::info;
 use config::{AppConfig, init_database, init_logging};
 use db::{Database, create_database};
 use error::AppResult;
-use services::{AuthService, ConfigService, NodeService, SystemService, UserService};
+use services::{AuthService, ConfigService, MonitoringService, NodeService, SystemService, UserService};
 use websocket::ConnectionManager;
 
 #[actix_web::main]
@@ -42,6 +42,7 @@ async fn main() -> AppResult<()> {
     let node_service = NodeService::new(db_clone.get_pool().clone());
     let config_service = ConfigService::new(db_clone.clone(), config.clone());
     let system_service = SystemService::new(config.clone());
+    let monitoring_service = MonitoringService::new(config.clone());
 
     // Create WebSocket connection manager
     let connection_manager = ConnectionManager::new();
@@ -68,6 +69,7 @@ async fn main() -> AppResult<()> {
             .app_data(web::Data::new(node_service.clone()))
             .app_data(web::Data::new(config_service.clone()))
             .app_data(web::Data::new(system_service.clone()))
+            .app_data(web::Data::new(monitoring_service.clone()))
             .app_data(web::Data::new(connection_manager.clone()))
             .wrap(cors)
             .wrap(Logger::default())
@@ -146,6 +148,16 @@ async fn main() -> AppResult<()> {
                     .route("/system/info", web::get().to(handlers::system::get_system_info))
                     .route("/system/operations/{operation_id}", web::get().to(handlers::system::check_operation_status))
                     .route("/system/health", web::get().to(handlers::system::system_health_check))
+                    // Monitoring endpoints
+                    .route("/monitoring/system", web::get().to(handlers::monitoring::get_system_metrics))
+                    .route("/monitoring/network", web::get().to(handlers::monitoring::get_network_statistics))
+                    .route("/monitoring/history", web::get().to(handlers::monitoring::get_history))
+                    .route("/monitoring/alerts", web::get().to(handlers::monitoring::get_alerts))
+                    .route("/monitoring/alerts", web::post().to(handlers::monitoring::create_alert))
+                    .route("/monitoring/alerts/{id}", web::put().to(handlers::monitoring::update_alert))
+                    .route("/monitoring/alerts/{id}", web::delete().to(handlers::monitoring::delete_alert))
+                    .route("/monitoring/alerts/rules", web::get().to(handlers::monitoring::get_alert_rules))
+                    .route("/monitoring/alerts/rules/{id}", web::get().to(handlers::monitoring::get_alert_rule))
             )
             .route("/ws", web::get().to(websocket::websocket_handler))
             .route("/ws/info", web::get().to(websocket::ws_info))

@@ -1,20 +1,58 @@
 //! Monitoring and statistics HTTP handlers
 //!
 //! This module contains handlers for all monitoring-related API endpoints
-//! including metrics retrieval, alerts, topology, and monitoring summaries.
+//! including metrics retrieval, alerts, network statistics, and historical data.
 
 use actix_web::{web, HttpResponse};
 use uuid::Uuid;
 
 use crate::error::AppResult;
-use crate::handlers::monitoring::*;
 use crate::models::monitoring::{
-    AcknowledgeAlertRequest, MetricsAggregationRequest, MetricsQuery,
+    AlertOperator, AlertSeverity, AlertStatus, MetricsQuery,
+    MetricType,
 };
+use crate::services::monitoring::{AlertRuleCreate, AlertRuleUpdate, MonitoringService};
 
-/// Get metrics for node(s)
+/// Get system metrics (CPU, memory, disk, network)
 ///
-/// GET /api/monitoring/metrics
+/// GET /api/monitoring/system
+///
+/// Query parameters:
+/// - node_id: Optional node ID filter (defaults to 'default')
+pub async fn get_system_metrics(
+    service: web::Data<MonitoringService>,
+    query: web::Query<SystemMetricsQuery>,
+) -> AppResult<HttpResponse> {
+    let node_id = query.node_id.as_deref();
+    let metrics = service.get_system_metrics(node_id).await?;
+
+    Ok(HttpResponse::Ok().json(metrics))
+}
+
+/// Get network traffic statistics
+///
+/// GET /api/monitoring/network
+///
+/// Query parameters:
+/// - node_id: Optional node ID filter
+/// - interface: Optional interface name filter
+pub async fn get_network_statistics(
+    service: web::Data<MonitoringService>,
+    query: web::Query<NetworkQuery>,
+) -> AppResult<HttpResponse> {
+    let node_id = query.node_id.as_deref();
+    let interface = query.interface.as_deref();
+    let stats = service.get_network_statistics(node_id, interface).await?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "statistics": stats,
+        "count": stats.len()
+    })))
+}
+
+/// Get historical monitoring data
+///
+/// GET /api/monitoring/history
 ///
 /// Query parameters:
 /// - node_id: Optional node ID filter
@@ -24,44 +62,7 @@ use crate::models::monitoring::{
 /// - end_time: Optional end time (ISO 8601)
 /// - limit: Optional result limit
 /// - sort_order: Optional sort order (asc/desc)
-pub async fn get_metrics(
-    service: web::Data<MonitoringService>,
-    query: web::Query<MetricsQuery>,
-) -> AppResult<HttpResponse> {
-    let query = query.into_inner();
-    let response = service.query_metrics(&query).await?;
-
-    Ok(HttpResponse::Ok().json(response))
-}
-
-/// Get monitoring summary
-///
-/// GET /api/monitoring/summary
-pub async fn get_monitoring_summary(
-    service: web::Data<MonitoringService>,
-) -> AppResult<HttpResponse> {
-    let summary = service.get_monitoring_summary().await?;
-
-    Ok(HttpResponse::Ok().json(summary))
-}
-
-/// Get system metrics for a node
-///
-/// GET /api/monitoring/system/{node_id}
-pub async fn get_system_metrics(
-    service: web::Data<MonitoringService>,
-    node_id: web::Path<String>,
-) -> AppResult<HttpResponse> {
-    let node_id = node_id.into_inner();
-    let metrics = service.get_system_metrics(&node_id).await?;
-
-    Ok(HttpResponse::Ok().json(metrics))
-}
-
-/// Get metrics history with statistics
-///
-/// GET /api/monitoring/history
-pub async fn get_metrics_history(
+pub async fn get_history(
     service: web::Data<MonitoringService>,
     query: web::Query<MetricsQuery>,
 ) -> AppResult<HttpResponse> {
@@ -71,21 +72,23 @@ pub async fn get_metrics_history(
     Ok(HttpResponse::Ok().json(response))
 }
 
-/// Get all alerts
+/// Get system alerts
 ///
 /// GET /api/monitoring/alerts
 ///
 /// Query parameters:
 /// - node_id: Optional node ID filter
-/// - severity: Optional severity filter
-/// - status: Optional status filter
-/// - limit: Optional result limit
+/// - severity: Optional severity filter (critical, warning, info)
+/// - status: Optional status filter (active, acknowledged, resolved, suppressed)
 pub async fn get_alerts(
     service: web::Data<MonitoringService>,
-    query: web::Query<AlertQuery>,
+    query: web::Query<AlertsQuery>,
 ) -> AppResult<HttpResponse> {
-    let query = query.into_inner();
-    let alerts = service.query_alerts(&query).await?;
+    let node_id = query.node_id.as_deref();
+    let severity = parse_alert_severity(&query.severity);
+    let status = parse_alert_status(&query.status);
+
+    let alerts = service.get_alerts(node_id, severity, status).await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "alerts": alerts,
@@ -93,61 +96,117 @@ pub async fn get_alerts(
     })))
 }
 
-/// Get a specific alert by ID
+/// Create a new alert rule
 ///
-/// GET /api/monitoring/alerts/{id}
-pub async fn get_alert(
+/// POST /api/monitoring/alerts
+///
+/// Request body:
+/// ```json
+/// {
+///   "name": "High CPU Alert",
+///   "description": "Alert when CPU usage exceeds threshold",
+///   "metric_name": "cpu_usage",
+///   "metric_type": "cpu",
+///   "threshold": 90.0,
+///   "operator": "greater_than",
+///   "severity": "critical",
+///   "for_seconds": 300,
+///   "labels": []
+/// }
+/// ```
+pub async fn create_alert(
     service: web::Data<MonitoringService>,
-    alert_id: web::Path<Uuid>,
+    rule: web::Json<AlertRuleCreateRequest>,
 ) -> AppResult<HttpResponse> {
-    let id = alert_id.into_inner();
-    let alert = service.get_alert(&id).await?;
+    let request = rule.into_inner();
 
-    Ok(HttpResponse::Ok().json(alert))
+    let rule_create = AlertRuleCreate {
+        name: request.name,
+        description: request.description,
+        metric_name: request.metric_name,
+        metric_type: request.metric_type,
+        threshold: request.threshold,
+        operator: request.operator,
+        severity: request.severity,
+        for_seconds: request.for_seconds,
+        labels: request.labels,
+    };
+
+    let created_rule = service.create_alert_rule(rule_create).await?;
+
+    Ok(HttpResponse::Created().json(created_rule))
 }
 
-/// Acknowledge an alert
+/// Update an alert rule
 ///
-/// POST /api/monitoring/alerts/{id}/acknowledge
-pub async fn acknowledge_alert(
+/// PUT /api/monitoring/alerts/{id}
+///
+/// Request body:
+/// ```json
+/// {
+///   "name": "Updated Alert Name",
+///   "description": "Updated description",
+///   "threshold": 95.0,
+///   "severity": "warning",
+///   "enabled": true
+/// }
+/// ```
+pub async fn update_alert(
     service: web::Data<MonitoringService>,
-    alert_id: web::Path<Uuid>,
-    request: web::Json<AcknowledgeAlertRequest>,
+    rule_id: web::Path<Uuid>,
+    rule: web::Json<AlertRuleUpdateRequest>,
 ) -> AppResult<HttpResponse> {
-    let id = alert_id.into_inner();
-    let request = request.into_inner();
-    let alert = service.acknowledge_alert(&id, request).await?;
+    let id = rule_id.into_inner();
+    let request = rule.into_inner();
 
-    Ok(HttpResponse::Ok().json(alert))
+    let rule_update = AlertRuleUpdate {
+        name: request.name,
+        description: request.description,
+        threshold: request.threshold,
+        operator: request.operator,
+        severity: request.severity,
+        for_seconds: request.for_seconds,
+        enabled: request.enabled,
+        labels: request.labels,
+    };
+
+    let updated_rule = service.update_alert_rule(&id, rule_update).await?;
+
+    Ok(HttpResponse::Ok().json(updated_rule))
 }
 
-/// Resolve an alert
+/// Delete an alert rule
 ///
-/// POST /api/monitoring/alerts/{id}/resolve
-pub async fn resolve_alert(
+/// DELETE /api/monitoring/alerts/{id}
+pub async fn delete_alert(
     service: web::Data<MonitoringService>,
-    alert_id: web::Path<Uuid>,
+    rule_id: web::Path<Uuid>,
 ) -> AppResult<HttpResponse> {
-    let id = alert_id.into_inner();
-    let alert = service.resolve_alert(&id).await?;
+    let id = rule_id.into_inner();
+    service.delete_alert_rule(&id).await?;
 
-    Ok(HttpResponse::Ok().json(alert))
+    Ok(HttpResponse::NoContent().finish())
 }
 
-/// Suppress an alert
+/// Get a specific alert rule by ID
 ///
-/// POST /api/monitoring/alerts/{id}/suppress
-pub async fn suppress_alert(
+/// GET /api/monitoring/alerts/rules/{id}
+pub async fn get_alert_rule(
     service: web::Data<MonitoringService>,
-    alert_id: web::Path<Uuid>,
+    rule_id: web::Path<Uuid>,
 ) -> AppResult<HttpResponse> {
-    let id = alert_id.into_inner();
-    let alert = service.suppress_alert(&id).await?;
+    let id = rule_id.into_inner();
+    let rules = service.get_alert_rules().await?;
 
-    Ok(HttpResponse::Ok().json(alert))
+    let rule = rules
+        .into_iter()
+        .find(|r| r.id == id)
+        .ok_or_else(|| crate::error::AppError::NotFound(format!("Alert rule {} not found", id)))?;
+
+    Ok(HttpResponse::Ok().json(rule))
 }
 
-/// Get alert rules
+/// Get all alert rules
 ///
 /// GET /api/monitoring/alerts/rules
 pub async fn get_alert_rules(
@@ -161,122 +220,28 @@ pub async fn get_alert_rules(
     })))
 }
 
-/// Create an alert rule
-///
-/// POST /api/monitoring/alerts/rules
-pub async fn create_alert_rule(
-    service: web::Data<MonitoringService>,
-    rule: web::Json<AlertRuleCreate>,
-) -> AppResult<HttpResponse> {
-    let rule = rule.into_inner();
-    let created_rule = service.create_alert_rule(rule).await?;
+// Query parameter structures
 
-    Ok(HttpResponse::Created().json(created_rule))
-}
-
-/// Update an alert rule
-///
-/// PUT /api/monitoring/alerts/rules/{id}
-pub async fn update_alert_rule(
-    service: web::Data<MonitoringService>,
-    rule_id: web::Path<Uuid>,
-    rule: web::Json<AlertRuleUpdate>,
-) -> AppResult<HttpResponse> {
-    let id = rule_id.into_inner();
-    let rule = rule.into_inner();
-    let updated_rule = service.update_alert_rule(&id, rule).await?;
-
-    Ok(HttpResponse::Ok().json(updated_rule))
-}
-
-/// Delete an alert rule
-///
-/// DELETE /api/monitoring/alerts/rules/{id}
-pub async fn delete_alert_rule(
-    service: web::Data<MonitoringService>,
-    rule_id: web::Path<Uuid>,
-) -> AppResult<HttpResponse> {
-    let id = rule_id.into_inner();
-    service.delete_alert_rule(&id).await?;
-
-    Ok(HttpResponse::NoContent().finish())
-}
-
-/// Get network topology
-///
-/// GET /api/monitoring/topology
-pub async fn get_network_topology(
-    service: web::Data<MonitoringService>,
-) -> AppResult<HttpResponse> {
-    let topology = service.get_network_topology().await?;
-
-    Ok(HttpResponse::Ok().json(topology))
-}
-
-/// Refresh network topology
-///
-/// POST /api/monitoring/topology/refresh
-pub async fn refresh_network_topology(
-    service: web::Data<MonitoringService>,
-) -> AppResult<HttpResponse> {
-    let topology = service.refresh_network_topology().await?;
-
-    Ok(HttpResponse::Ok().json(topology))
-}
-
-/// Get aggregated metrics
-///
-/// POST /api/monitoring/aggregation
-pub async fn aggregate_metrics(
-    service: web::Data<MonitoringService>,
-    request: web::Json<MetricsAggregationRequest>,
-) -> AppResult<HttpResponse> {
-    let request = request.into_inner();
-    let result = service.aggregate_metrics(request).await?;
-
-    Ok(HttpResponse::Ok().json(result))
-}
-
-/// Get node health status
-///
-/// GET /api/monitoring/health/{node_id}
-pub async fn get_node_health(
-    service: web::Data<MonitoringService>,
-    node_id: web::Path<String>,
-) -> AppResult<HttpResponse> {
-    let node_id = node_id.into_inner();
-    let health = service.get_node_health(&node_id).await?;
-
-    Ok(HttpResponse::Ok().json(health))
-}
-
-/// Get all nodes health status
-///
-/// GET /api/monitoring/health
-pub async fn get_all_nodes_health(
-    service: web::Data<MonitoringService>,
-) -> AppResult<HttpResponse> {
-    let health = service.get_all_nodes_health().await?;
-
-    Ok(HttpResponse::Ok().json(health))
-}
-
-/// Trigger immediate metrics collection
-///
-/// POST /api/monitoring/collect
-pub async fn trigger_metrics_collection(
-    service: web::Data<MonitoringService>,
-) -> AppResult<HttpResponse> {
-    service.collect_all_metrics().await?;
-
-    Ok(HttpResponse::Accepted().json(serde_json::json!({
-        "message": "Metrics collection triggered"
-    })))
-}
-
-/// Query parameters for alert filtering
+/// Query parameters for system metrics
 #[derive(Debug, Clone, serde::Deserialize)]
-pub struct AlertQuery {
+pub struct SystemMetricsQuery {
+    /// Optional node ID filter
+    pub node_id: Option<String>,
+}
+
+/// Query parameters for network statistics
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct NetworkQuery {
+    /// Optional node ID filter
+    pub node_id: Option<String>,
+
+    /// Optional interface name filter
+    pub interface: Option<String>,
+}
+
+/// Query parameters for alerts
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct AlertsQuery {
     /// Optional node ID filter
     pub node_id: Option<String>,
 
@@ -288,49 +253,54 @@ pub struct AlertQuery {
 
     /// Optional limit on number of results
     pub limit: Option<usize>,
-
-    /// Optional offset for pagination
-    pub offset: Option<usize>,
 }
 
 /// Request to create an alert rule
 #[derive(Debug, Clone, serde::Deserialize)]
-pub struct AlertRuleCreate {
+pub struct AlertRuleCreateRequest {
     pub name: String,
     pub description: Option<String>,
     pub metric_name: String,
-    pub metric_type: crate::models::monitoring::MetricType,
+    pub metric_type: MetricType,
     pub threshold: f64,
-    pub operator: crate::models::monitoring::AlertOperator,
-    pub severity: crate::models::monitoring::AlertSeverity,
+    pub operator: AlertOperator,
+    pub severity: AlertSeverity,
     pub for_seconds: u32,
     pub labels: Vec<crate::models::monitoring::MetricLabel>,
 }
 
 /// Request to update an alert rule
 #[derive(Debug, Clone, serde::Deserialize)]
-pub struct AlertRuleUpdate {
+pub struct AlertRuleUpdateRequest {
     pub name: Option<String>,
     pub description: Option<String>,
     pub threshold: Option<f64>,
-    pub operator: Option<crate::models::monitoring::AlertOperator>,
-    pub severity: Option<crate::models::monitoring::AlertSeverity>,
+    pub operator: Option<AlertOperator>,
+    pub severity: Option<AlertSeverity>,
     pub for_seconds: Option<u32>,
     pub enabled: Option<bool>,
     pub labels: Option<Vec<crate::models::monitoring::MetricLabel>>,
 }
 
-/// Node health information
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct NodeHealth {
-    pub node_id: String,
-    pub node_name: String,
-    pub status: crate::models::monitoring::HealthStatus,
-    pub cpu_usage_percent: f64,
-    pub memory_usage_percent: f64,
-    pub disk_usage_percent: f64,
-    pub uptime_seconds: u64,
-    pub last_updated: chrono::DateTime<chrono::Utc>,
+/// Helper function to parse alert severity from string
+fn parse_alert_severity(value: &Option<String>) -> Option<AlertSeverity> {
+    match value.as_deref() {
+        Some("critical") => Some(AlertSeverity::Critical),
+        Some("warning") => Some(AlertSeverity::Warning),
+        Some("info") => Some(AlertSeverity::Info),
+        _ => None,
+    }
+}
+
+/// Helper function to parse alert status from string
+fn parse_alert_status(value: &Option<String>) -> Option<AlertStatus> {
+    match value.as_deref() {
+        Some("active") => Some(AlertStatus::Active),
+        Some("acknowledged") => Some(AlertStatus::Acknowledged),
+        Some("resolved") => Some(AlertStatus::Resolved),
+        Some("suppressed") => Some(AlertStatus::Suppressed),
+        _ => None,
+    }
 }
 
 #[cfg(test)]
@@ -339,15 +309,52 @@ mod tests {
 
     #[test]
     fn test_alert_query_creation() {
-        let query = AlertQuery {
+        let query = AlertsQuery {
             node_id: Some("node-1".to_string()),
             severity: Some("critical".to_string()),
             status: Some("active".to_string()),
             limit: Some(10),
-            offset: None,
         };
 
         assert_eq!(query.node_id, Some("node-1".to_string()));
         assert_eq!(query.limit, Some(10));
+    }
+
+    #[test]
+    fn test_parse_alert_severity() {
+        assert_eq!(
+            parse_alert_severity(&Some("critical".to_string())),
+            Some(AlertSeverity::Critical)
+        );
+        assert_eq!(
+            parse_alert_severity(&Some("warning".to_string())),
+            Some(AlertSeverity::Warning)
+        );
+        assert_eq!(
+            parse_alert_severity(&Some("info".to_string())),
+            Some(AlertSeverity::Info)
+        );
+        assert_eq!(parse_alert_severity(&Some("invalid".to_string())), None);
+    }
+
+    #[test]
+    fn test_parse_alert_status() {
+        assert_eq!(
+            parse_alert_status(&Some("active".to_string())),
+            Some(AlertStatus::Active)
+        );
+        assert_eq!(
+            parse_alert_status(&Some("acknowledged".to_string())),
+            Some(AlertStatus::Acknowledged)
+        );
+        assert_eq!(
+            parse_alert_status(&Some("resolved".to_string())),
+            Some(AlertStatus::Resolved)
+        );
+        assert_eq!(
+            parse_alert_status(&Some("suppressed".to_string())),
+            Some(AlertStatus::Suppressed)
+        );
+        assert_eq!(parse_alert_status(&Some("invalid".to_string())), None);
     }
 }
