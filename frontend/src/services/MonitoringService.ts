@@ -134,7 +134,7 @@ apiClient.interceptors.response.use(
     }
 
     const message =
-      error.response?.data?.message ||
+      (error.response?.data as any)?.message ||
       error.message ||
       'An unexpected error occurred';
 
@@ -276,13 +276,3 @@ export class MonitoringService {
 
 // Export singleton instance
 export const monitoringService = MonitoringService.getInstance();
-
-// Export types for use in components
-export type {
-  SystemMetricsResponse,
-  DashboardSummaryResponse,
-  NodeStatusResponse,
-  TrafficDataResponse,
-  ActivityLogResponse,
-  AlertResponse,
-};

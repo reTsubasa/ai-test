@@ -127,7 +127,7 @@ export function InterfacesConfigPage() {
       });
   };
 
-  const detectInterfaceType = (name: string, children: ConfigNode[]): InterfaceConfig['type'] {
+  const detectInterfaceType = (name: string, children: ConfigNode[]): InterfaceConfig['type'] => {
     if (name.startsWith('lo')) return 'loopback';
     if (name.startsWith('bond')) return 'bonding';
     if (name.startsWith('br')) return 'bridge';

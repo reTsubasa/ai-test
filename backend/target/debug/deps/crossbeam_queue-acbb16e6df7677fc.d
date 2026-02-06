@@ -1,0 +1,9 @@
+/Users/hyc/Documents/new_ai/backend/target/debug/deps/libcrossbeam_queue-acbb16e6df7677fc.rmeta: /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossbeam-queue-0.3.12/src/lib.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossbeam-queue-0.3.12/src/array_queue.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossbeam-queue-0.3.12/src/seg_queue.rs
+
+/Users/hyc/Documents/new_ai/backend/target/debug/deps/libcrossbeam_queue-acbb16e6df7677fc.rlib: /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossbeam-queue-0.3.12/src/lib.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossbeam-queue-0.3.12/src/array_queue.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossbeam-queue-0.3.12/src/seg_queue.rs
+
+/Users/hyc/Documents/new_ai/backend/target/debug/deps/crossbeam_queue-acbb16e6df7677fc.d: /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossbeam-queue-0.3.12/src/lib.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossbeam-queue-0.3.12/src/array_queue.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossbeam-queue-0.3.12/src/seg_queue.rs
+
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossbeam-queue-0.3.12/src/lib.rs:
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossbeam-queue-0.3.12/src/array_queue.rs:
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crossbeam-queue-0.3.12/src/seg_queue.rs:

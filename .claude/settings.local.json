@@ -22,7 +22,18 @@
       "Bash(npm test:*)",
       "Bash(npx jest:*)",
       "Bash(curl:*)",
-      "Bash(git remote add origin https://github.com/reTsubasa/vywebui.git)"
+      "Bash(git remote add origin https://github.com/reTsubasa/vywebui.git)",
+      "Bash(git push -u origin master)",
+      "Bash(cargo run)",
+      "Bash(npm run dev)",
+      "Bash(cargo build)",
+      "Bash(__NEW_LINE_3eb0b8dc220c2512__ echo \"\")",
+      "Bash(__NEW_LINE_e8fdc3a08fb5a97b__ echo \"\")",
+      "Bash(nc -zv localhost 7070)",
+      "Bash(find frontend/src -name \"*.tsx\" -type f -exec grep -l \"../contexts/AuthContext\" {} ;)",
+      "Bash(node /Users/hyc/Documents/new_ai/frontend/test_api.js)",
+      "Bash(node /Users/hyc/Documents/new_ai/frontend/test_api.mjs)",
+      "Bash(node /Users/hyc/Documents/new_ai/frontend/integration_test.mjs)"
     ]
   }
 }

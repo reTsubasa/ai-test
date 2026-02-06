@@ -1,0 +1,12 @@
+/Users/hyc/Documents/new_ai/backend/target/debug/deps/libhttparse-497b9201e6fe4f6e.rmeta: /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/lib.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/iter.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/macros.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/simd/mod.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/simd/swar.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/simd/sse42.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/simd/avx2.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/simd/runtime.rs
+
+/Users/hyc/Documents/new_ai/backend/target/debug/deps/httparse-497b9201e6fe4f6e.d: /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/lib.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/iter.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/macros.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/simd/mod.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/simd/swar.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/simd/sse42.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/simd/avx2.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/simd/runtime.rs
+
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/lib.rs:
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/iter.rs:
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/macros.rs:
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/simd/mod.rs:
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/simd/swar.rs:
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/simd/sse42.rs:
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/simd/avx2.rs:
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/httparse-1.10.1/src/simd/runtime.rs:

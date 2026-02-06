@@ -418,7 +418,7 @@ class UserManagementService {
   private handleError(error: unknown, defaultMessage: string): never {
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError<ApiError>;
-      const errorMessage = axiosError.response?.data?.message || errorMessage || defaultMessage;
+      const errorMessage = axiosError.response?.data?.message || defaultMessage;
       throw new Error(errorMessage);
     }
     throw new Error(defaultMessage);

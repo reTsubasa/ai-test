@@ -1,239 +1,108 @@
-# VyOS Web UI 项目实施计划
+# VyOS Web UI Project Plan
 
-## 项目概述
+## Project Overview
 
-### 项目名称
-VyOS Web UI
+**项目名称：** VyOS Web UI
+**目标：** 为VyOS开源路由器开发功能完备的Web管理界面
+**仓库：** https://github.com/reTsubasa/ai-test
 
-### 项目描述
-为开源路由器 VyOS 开发一个功能完备的 Web 用户界面，使管理员能够通过直观的网页界面进行网络配置、监控和管理操作。
+## 技术栈
 
-### 项目目标
-- 提供现代化的 Web 界面用于管理 VyOS 路由器
-- 支持完整的网络配置功能（路由、防火墙、接口等）
-- 实现实时监控和警报功能
-- 提供用户管理和权限控制
-- 兼容多种数据库（SQLite 默认，MySQL 可选）
+- **后端：** Rust + Actix-web
+- **数据库：** SQLite（默认） / MySQL
+- **前端：** Vite + TypeScript + React 18 + shadcn/ui + Tailwind CSS
+- **状态管理：** Zustand + React Query
+- **实时通信：** WebSocket
 
-### 技术要求
-- 前端：React 19, TypeScript, Tailwind CSS
-- 后端：Rust (Axum 框架)
-- 数据库：SQLite (默认), MySQL 支持
-- 构建工具：Vite
+## 项目阶段
 
-## 项目团队结构
+### Phase 1: 单节点管理 (Single Node Management)
 
-### 项目经理
-- 负责整体项目规划、进度控制、风险管理和任务分配
+1. 系统架构设计
+2. 数据库设计
+3. 后端API开发
+4. 前端UI开发
 
-### 系统架构师
-- 负责整体系统架构设计
-- 制定技术标准和规范
-- 设计 API 接口
+### Phase 2: 多节点管理 (Multi-Node Management)
 
-### 后端开发团队
-- 实现 Rust 后端服务
-- 开发数据库操作层
-- 实现与 VyOS 系统的接口
+1. 多节点管理功能
+2. 节点聚合监控
+3. 批量操作
 
-### 前端开发团队
-- 开发 React 前端界面
-- 实现用户交互逻辑
-- 集成后端 API
+## 任务列表
 
-### 测试工程师
-- 制定测试策略
-- 编写和执行测试用例
-- 进行性能和安全性测试
+| ID | 任务 | 角色 | 状态 |
+|----|------|------|------|
+| 1 | Design overall system architecture | 架构师 | Pending |
+| 2 | Design database schema | 架构师 | Pending |
+| 3 | Setup Rust backend project foundation | 后端开发 | Pending |
+| 4 | Implement authentication system | 后端开发 | Pending |
+| 5 | Implement node management API | 后端开发 | Pending |
+| 6 | Implement configuration management API | 后端开发 | Pending |
+| 7 | Implement system operations API | 后端开发 | Pending |
+| 8 | Implement monitoring and statistics API | 后端开发 | Pending |
+| 9 | Setup modern frontend project | 前端开发 | Pending |
+| 10 | Implement authentication UI | 前端开发 | Pending |
+| 11 | Implement node management UI | 前端开发 | Pending |
+| 12 | Implement dashboard UI | 前端开发 | Pending |
+| 13 | Implement network configuration UI | 前端开发 | Pending |
+| 14 | Implement system management UI | 前端开发 | Pending |
+| 15 | Implement user management UI | 前端开发 | Pending |
+| 16 | Write comprehensive project documentation | 架构师 | Pending |
 
-### 技术文档工程师
-- 编写技术文档
-- 创建用户手册
-- 维护 API 文档
+## 测试环境
 
-## 详细实施计划
+- **VyOS API Endpoint:** https://10.10.5.51/info
+- **SSH:** 10.10.5.51, vyos/vyos
 
-### 第一阶段：需求分析与架构设计 (第 1-2 周)
+## VyOS API Endpoints
 
-#### 任务 1.1：需求分析
-- 分析 VyOS 现有功能
-- 确定 Web UI 必需功能
-- 创建功能规格说明书
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| /info | GET | 系统信息（无需认证） |
+| /retrieve | POST | 获取配置 |
+| /configure | POST | 配置设置 |
+| /generate | POST | 生成配置 |
+| /config-file | POST | 配置文件操作 |
+| /show | POST | 显示操作模式数据 |
+| /reset | POST | 重置配置 |
+| /reboot | POST | 重启系统 |
+| /poweroff | POST | 关闭系统 |
+| /image | POST | 镜像管理 |
 
-#### 任务 1.2：系统架构设计
-- 设计前后端分离架构
-- 规划数据库模式
-- 设计 API 接口规范
-- 确定认证和授权机制
+## 项目结构
 
-#### 任务 1.3：技术选型确认
-- 最终确定前端技术栈
-- 最终确定后端技术栈
-- 选择合适的第三方库
+```
+vyos-webui/
+├── backend/
+│   ├── src/
+│   │   ├── main.rs
+│   │   ├── config/
+│   │   ├── db/
+│   │   ├── error/
+│   │   ├── handlers/
+│   │   ├── middleware/
+│   │   ├── models/
+│   │   ├── services/
+│   │   └── websocket/
+│   ├── migrations/
+│   └── Cargo.toml
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   ├── stores/
+│   │   ├── hooks/
+│   │   └── types/
+│   ├── package.json
+│   └── vite.config.ts
+└── docs/
+```
 
-### 第二阶段：基础框架搭建 (第 3-4 周)
+## 执行策略
 
-#### 任务 2.1：后端框架搭建
-- 初始化 Rust 项目
-- 设置数据库连接池
-- 实现基础配置管理
-
-#### 任务 2.2：前端框架搭建
-- 初始化 React 项目
-- 设置 TypeScript 和 Tailwind CSS
-- 配置构建工具 Vite
-
-#### 任务 2.3：基础服务开发
-- 实现认证服务
-- 创建基本错误处理机制
-- 设置日志记录系统
-
-### 第三阶段：核心功能开发 (第 5-10 周)
-
-#### 任务 3.1：用户管理模块
-- 用户注册、登录、注销
-- 角色和权限管理
-- 密码重置功能
-
-#### 任务 3.2：网络配置模块
-- 接口配置页面
-- 路由配置页面
-- 防火墙规则配置页面
-- DHCP 配置页面
-- DNS 配置页面
-
-#### 任务 3.3：监控模块
-- 实时系统监控
-- 网络流量图表
-- 系统健康状况
-- 告警管理
-
-### 第四阶段：高级功能开发 (第 11-14 周)
-
-#### 任务 4.1：配置管理
-- 配置备份和恢复
-- 配置版本控制
-- 批量配置应用
-
-#### 任务 4.2：安全功能
-- HTTPS 支持
-- 安全头设置
-- 输入验证和清理
-
-#### 任务 4.3：用户体验优化
-- 响应式设计完善
-- 性能优化
-- 错误处理改进
-
-### 第五阶段：测试与质量保证 (第 15-16 周)
-
-#### 任务 5.1：单元测试
-- 后端服务单元测试
-- 前端组件单元测试
-
-#### 任务 5.2：集成测试
-- API 集成测试
-- 前后端集成测试
-
-#### 任务 5.3：用户验收测试
-- 功能测试
-- 性能测试
-- 安全性测试
-
-### 第六阶段：部署与发布 (第 17-18 周)
-
-#### 任务 6.1：部署准备
-- 生产环境配置
-- 自动化部署脚本
-- 备份和恢复方案
-
-#### 任务 6.2：文档完善
-- 最终用户手册
-- 管理员指南
-- API 文档
-
-## 风险管理
-
-### 技术风险
-- VyOS API 变更可能影响集成
-- 性能问题在高负载情况下可能出现
-- 数据库兼容性问题
-
-### 应对策略
-- 使用版本控制管理依赖
-- 实施渐进式性能测试
-- 在多个数据库环境中进行测试
-
-### 时间风险
-- 关键开发人员可能缺席
-- 技术难题解决时间超预期
-
-### 应对策略
-- 建立知识共享机制
-- 预留缓冲时间应对不可预见问题
-
-## 里程碑计划
-
-| 里程碑 | 预期完成时间 | 交付成果 |
-|--------|-------------|----------|
-| 架构设计完成 | 第 2 周末 | 系统架构文档、API 规范 |
-| 基础框架搭建 | 第 4 周末 | 可运行的基础前后端 |
-| 核心功能完成 | 第 10 周末 | 完整的核心功能模块 |
-| 高级功能完成 | 第 14 周末 | 完整的系统功能 |
-| 测试完成 | 第 16 周末 | 通过所有测试的功能完整的系统 |
-| 发布准备 | 第 18 周末 | 准备发布的最终产品 |
-
-## 项目成功标准
-
-### 功能标准
-- 所有计划功能按规格实现
-- 用户能够通过 Web UI 完成主要 VyOS 配置任务
-- 系统响应时间在可接受范围内
-
-### 质量标准
-- 代码覆盖率超过 80%
-- 无严重安全漏洞
-- 通过所有功能和性能测试
-
-### 用户体验标准
-- 界面直观易用
-- 响应时间不超过 2 秒
-- 提供充分的帮助文档
-
-## 沟通计划
-
-- 每周举行一次项目状态会议
-- 使用项目管理工具跟踪进度
-- 定期更新项目文档
-- 及时报告风险和问题
-
-## 附录：技术架构图示
-
-[此处将在实际开发过程中添加系统架构图，显示前端、后端、数据库和 VyOS 系统之间的关系]
-
-## 工具和技术栈详细说明
-
-### 前端技术栈
-- React 19: 用于构建用户界面
-- TypeScript: 提供类型安全
-- Tailwind CSS: 用于样式设计
-- Vite: 构建和开发服务器
-- React Router: 页面路由管理
-
-### 后端技术栈
-- Rust: 系统编程语言，提供高性能和内存安全
-- Axum: Web 框架，用于构建 API
-- SQLx: 异步数据库操作库
-- JWT: 用于身份验证
-- Tokio: 异步运行时
-
-### 数据库
-- SQLite: 默认嵌入式数据库
-- MySQL: 可选数据库选项
-- SQLx: 提供统一的数据库访问接口
-
-### 测试工具
-- Jest: JavaScript 测试框架
-- React Testing Library: 前端组件测试
-- Postman/Newman: API 测试
-- Criterion.rs: Rust 性能测试
+1. **架构设计优先：** 任务1-2优先执行
+2. **后端并行开发：** 任务3-8可并行（依赖任务2完成）
+3. **前端并行开发：** 任务9-15可并行（依赖任务3完成）
+4. **文档持续更新：** 任务16贯穿整个项目

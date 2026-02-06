@@ -481,7 +481,7 @@ class ConfigService {
       }
 
       if (axiosError.response?.status === 422) {
-        throw new Error(apiError.message || 'Invalid configuration data.');
+        throw new Error('Invalid configuration data.');
       }
 
       throw new Error(defaultMessage);

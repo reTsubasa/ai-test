@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '../ui/Label';
 import { Textarea } from '../ui/Textarea';
 import { Switch } from '../ui/Switch';
-import { Alert } from '../ui/Alert';
+import { Alert, AlertDescription } from '../ui/Alert';
 import { ChevronRight, ChevronDown, Plus, Edit, Trash2, Search, FileJson, Settings, Eye, EyeOff, Check, X, AlertTriangle } from 'lucide-react';
 import type { ConfigNode } from '../../stores/configStore';
 import { cn } from '../../utils/cn';
@@ -313,9 +313,9 @@ export function ConfigEditor({
       {showValidation && validationErrors.length > 0 && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <Alert.Description>
+          <AlertDescription>
             {validationErrors.length} validation error(s) found
-          </Alert.Description>
+          </AlertDescription>
         </Alert>
       )}
     </div>

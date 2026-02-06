@@ -1,0 +1,11 @@
+/Users/hyc/Documents/new_ai/backend/target/debug/deps/libconvert_case-7a11761725028e59.rmeta: /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/lib.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/boundary.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/case.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/converter.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/pattern.rs
+
+/Users/hyc/Documents/new_ai/backend/target/debug/deps/libconvert_case-7a11761725028e59.rlib: /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/lib.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/boundary.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/case.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/converter.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/pattern.rs
+
+/Users/hyc/Documents/new_ai/backend/target/debug/deps/convert_case-7a11761725028e59.d: /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/lib.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/boundary.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/case.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/converter.rs /Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/pattern.rs
+
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/lib.rs:
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/boundary.rs:
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/case.rs:
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/converter.rs:
+/Users/hyc/.cargo/registry/src/index.crates.io-6f17d22bba15001f/convert_case-0.10.0/src/pattern.rs:
