@@ -4,9 +4,7 @@ use validator::Validate;
 use tracing::{info, warn};
 
 use crate::error::{AppError, AppResult};
-use crate::middleware::auth::extract_claims;
-use crate::models::auth::{Claims, LoginRequest, LoginResponse, RegisterRequest};
-use crate::models::user::{User, UserResponse};
+use crate::models::auth::{Claims, LoginRequest, LoginResponse, RegisterRequest, UserResponse};
 use crate::services::AuthService;
 
 /// Health check endpoint
@@ -24,21 +22,6 @@ pub async fn health_check() -> AppResult<HttpResponse> {
         version: env!("CARGO_PKG_VERSION").to_string(),
         database: "connected".to_string(),
     }))
-}
-
-/// Register request payload
-#[derive(Debug, Deserialize, Validate)]
-pub struct RegisterRequest {
-    #[validate(length(min = 3, max = 50))]
-    pub username: String,
-
-    #[validate(email)]
-    pub email: String,
-
-    #[validate(length(min = 6))]
-    pub password: String,
-
-    pub full_name: Option<String>,
 }
 
 /// Register handler
@@ -161,7 +144,7 @@ pub async fn get_current_user(
     let user = user_record.to_user();
 
     Ok(HttpResponse::Ok().json(UserResponse {
-        id: user.id.to_string(),
+        id: user.id,
         username: user.username,
         email: user.email,
         full_name: user.full_name,

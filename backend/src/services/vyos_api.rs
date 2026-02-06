@@ -66,7 +66,7 @@ impl VyosApiClient {
         let base_url = std::env::var("VYOS_API_URL")
             .unwrap_or_else(|_| "https://10.10.5.51".to_string());
         let api_key = std::env::var("VYOS_API_KEY")
-            .map_err(|_| AppError::Configuration("VYOS_API_KEY not set".to_string()))?;
+            .map_err(|_| AppError::Config("VYOS_API_KEY not set".to_string()))?;
         let timeout = std::env::var("VYOS_API_TIMEOUT")
             .ok()
             .and_then(|s| s.parse().ok())
@@ -124,7 +124,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to get system info: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -149,7 +149,7 @@ impl VyosApiClient {
         if !response.status().is_success() {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -184,7 +184,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to retrieve config: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -221,7 +221,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to set config: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -254,7 +254,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to delete config: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -288,7 +288,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to add comment: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -322,7 +322,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to rename: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -356,7 +356,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to copy: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -390,7 +390,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to move: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -425,7 +425,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to generate config: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -457,7 +457,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to save config: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -492,7 +492,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to load config file: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -527,7 +527,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to save config file: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -562,7 +562,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to execute show: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -621,7 +621,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to reset config: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -648,7 +648,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to reboot: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -675,7 +675,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to poweroff: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -710,7 +710,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to add image: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -743,7 +743,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to delete image: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -776,7 +776,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to set default image: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -810,7 +810,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to rename image: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));
@@ -841,7 +841,7 @@ impl VyosApiClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             error!("Failed to list images: {} - {}", status, text);
-            return Err(AppError::ExternalService(format!(
+            return Err(AppError::ExternalApi(format!(
                 "VyOS API error: {} - {}",
                 status, text
             )));

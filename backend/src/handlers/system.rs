@@ -1,11 +1,11 @@
 use actix_web::{web, HttpResponse};
 
 use crate::error::AppResult;
-use crate::handlers::system::*;
 use crate::models::system::{
     AddImageRequest, DeleteImageRequest, ImageManagementRequest, ResetConfigRequest,
     SetDefaultImageRequest, ShowCommandRequest,
 };
+use crate::services::SystemService;
 
 /// Reboot the system
 ///

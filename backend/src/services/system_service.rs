@@ -5,7 +5,7 @@ use crate::models::system::{
     ResetConfigRequest, SetDefaultImageRequest, ShowCommandRequest, ShowCommandResult,
     SystemInfo, VyOSImage,
 };
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use reqwest::Client;
 use serde_json::json;
 use std::collections::HashMap;
@@ -13,6 +13,7 @@ use std::time::Duration;
 use tracing::{debug, error, info, warn};
 
 /// System service for interacting with VyOS system operations
+#[derive(Clone)]
 pub struct SystemService {
     config: AppConfig,
     client: Client,
@@ -203,10 +204,10 @@ impl SystemService {
             });
         }
 
-        let reset_command = match request.reset_type {
-            crate::models::system::ResetType::Factory => "reset factory",
+        let reset_command: String = match request.reset_type {
+            crate::models::system::ResetType::Factory => "reset factory".to_string(),
             crate::models::system::ResetType::Default => {
-                if let Some(backup) = request.backup_name {
+                if let Some(ref backup) = request.backup_name {
                     format!("load {}", backup)
                 } else {
                     "load defaults".to_string()

@@ -57,11 +57,12 @@ where
     type Error = Error;
     type Transform = AuthMiddlewareService<S>;
     type InitError = ();
+    type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
-    fn new_transform(&self, service: S) -> Result<Self::Transform, Self::InitError> {
-        Ok(AuthMiddlewareService {
+    fn new_transform(&self, service: S) -> Self::Future {
+        ready(Ok(AuthMiddlewareService {
             service: Rc::new(RefCell::new(service)),
-        })
+        }))
     }
 }
 
@@ -112,7 +113,7 @@ where
             }
 
             // If we reach here, authentication failed
-            Err(ErrorUnauthorized("Invalid or missing authentication token".into()))
+            Err(ErrorUnauthorized("Invalid or missing authentication token"))
         })
     }
 }
@@ -131,11 +132,12 @@ where
     type Error = Error;
     type Transform = OptionalAuthMiddlewareService<S>;
     type InitError = ();
+    type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
-    fn new_transform(&self, service: S) -> Result<Self::Transform, Self::InitError> {
-        Ok(OptionalAuthMiddlewareService {
+    fn new_transform(&self, service: S) -> Self::Future {
+        ready(Ok(OptionalAuthMiddlewareService {
             service: Rc::new(RefCell::new(service)),
-        })
+        }))
     }
 }
 

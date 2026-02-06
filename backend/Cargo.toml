@@ -51,11 +51,15 @@ dotenv = "0.15"
 home = "=0.5.5"
 
 # WebSocket support
-actix-ws = "0.1"
+actix-ws = "0.3"
 futures = "0.3"
+futures-util = "0.3"
 
 # Async trait support
 async-trait = "0.1"
+
+# Cryptographic support
+sha2 = "0.10"
 
 # Environment
 env_logger = "0.11"

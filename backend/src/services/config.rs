@@ -3,6 +3,7 @@ use crate::db::Database;
 use crate::error::AppError;
 
 /// Configuration service for managing VyOS configuration
+#[derive(Clone)]
 pub struct ConfigService {
     db: Database,
     config: AppConfig,
@@ -232,10 +233,11 @@ impl ConfigService {
 
         // Filter based on search criteria
         let results = self.search_in_tree(&full_config.config_tree, &request).await;
+        let total_count = results.len();
 
         Ok(crate::models::config::ConfigSearchResponse {
             results,
-            total_count: results.len(),
+            total_count,
         })
     }
 
@@ -394,7 +396,7 @@ impl ConfigService {
         Ok(())
     }
 
-    async fn get_history_entry(
+    pub async fn get_history_entry(
         &self,
         _history_id: uuid::Uuid,
     ) -> Result<crate::models::config::ConfigHistory, AppError> {
@@ -475,9 +477,33 @@ impl ConfigService {
             results.push(node.clone());
         }
 
-        // Recursively search children
-        for child in &node.children {
-            results.extend(self.search_in_tree(child, request).await);
+        // Recursively search children - use a helper function to avoid async recursion
+        let mut children_to_search: Vec<&crate::models::config::ConfigNode> = node.children.iter().collect();
+        while let Some(child) = children_to_search.pop() {
+            if crate::models::config::SearchType::Path == request.search_type {
+                if child.path.to_lowercase().contains(&term_lower) {
+                    results.push(child.clone());
+                }
+            } else if crate::models::config::SearchType::Value == request.search_type {
+                if child.value
+                    .as_ref()
+                    .map(|v| v.to_lowercase().contains(&term_lower))
+                    .unwrap_or(false)
+                {
+                    results.push(child.clone());
+                }
+            } else {
+                // Both
+                if child.path.to_lowercase().contains(&term_lower)
+                    || child.value
+                        .as_ref()
+                        .map(|v| v.to_lowercase().contains(&term_lower))
+                        .unwrap_or(false)
+                {
+                    results.push(child.clone());
+                }
+            }
+            children_to_search.extend(child.children.iter());
         }
 
         results

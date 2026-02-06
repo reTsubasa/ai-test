@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use validator::Validate;
 
 /// User role
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,8 +46,9 @@ pub struct CreateUserRequest {
 }
 
 /// Update user request
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct UpdateUserRequest {
+    #[validate(email)]
     pub email: Option<String>,
     pub full_name: Option<String>,
     pub role: Option<UserRole>,
@@ -54,36 +56,24 @@ pub struct UpdateUserRequest {
 }
 
 /// Update user profile request
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct UpdateProfileRequest {
+    #[validate(email)]
     pub email: Option<String>,
     pub full_name: Option<String>,
 }
 
 /// Change password request
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct ChangePasswordRequest {
+    #[validate(length(min = 6))]
     pub current_password: String,
+    #[validate(length(min = 6))]
     pub new_password: String,
 }
 
-/// Register request (same as CreateUserRequest but without role)
-#[derive(Debug, Deserialize, Validate)]
-pub struct RegisterRequest {
-    #[validate(length(min = 3, max = 50))]
-    pub username: String,
-
-    #[validate(email)]
-    pub email: String,
-
-    #[validate(length(min = 6))]
-    pub password: String,
-
-    pub full_name: Option<String>,
-}
-
 /// User list query parameters for filtering and pagination
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct UserListQuery {
     /// Filter by status
     pub status: Option<UserStatus>,

@@ -5,7 +5,8 @@ use tracing::info;
 
 use crate::error::AppResult;
 use crate::middleware::auth::extract_claims;
-use crate::models::user::{ChangePasswordRequest, RegisterRequest, UpdateProfileRequest, UpdateUserRequest, User, UserListQuery, UserListResponse};
+use crate::models::auth::RegisterRequest;
+use crate::models::user::{ChangePasswordRequest, UpdateProfileRequest, UpdateUserRequest, User, UserListQuery, UserListResponse};
 use crate::services::UserService;
 
 /// User information structure for response

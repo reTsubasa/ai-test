@@ -10,7 +10,7 @@ use crate::models::node::{
 };
 use crate::vyos_client::{VyOSClient, VyOSClientConfig, VyOSConnectionTest, VyOSInfo};
 use chrono::{DateTime, Utc};
-use sqlx::AnyPool;
+use sqlx::{AnyPool, Row};
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 

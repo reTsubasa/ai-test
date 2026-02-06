@@ -200,14 +200,14 @@ pub async fn validate_config(
 
 /// Query parameters for history endpoint
 #[derive(Debug, Deserialize)]
-struct HistoryQueryParams {
+pub struct HistoryQueryParams {
     /// Maximum number of history entries to return
     limit: Option<usize>,
 }
 
 /// Configuration node value request
 #[derive(Debug, Deserialize)]
-struct ConfigValueRequest {
+pub struct ConfigValueRequest {
     /// Path to the configuration node
     path: String,
 }
@@ -256,7 +256,7 @@ fn find_node_value(node: &crate::models::config::ConfigNode, path: &str) -> Opti
 
 /// Configuration subtree request
 #[derive(Debug, Deserialize)]
-struct ConfigSubtreeRequest {
+pub struct ConfigSubtreeRequest {
     /// Path to the configuration subtree
     path: String,
 }
@@ -287,7 +287,7 @@ pub async fn get_config_subtree(
 
 /// Configuration comparison request
 #[derive(Debug, Deserialize)]
-struct ConfigCompareRequest {
+pub struct ConfigCompareRequest {
     /// First snapshot ID or revision number
     id1: uuid::Uuid,
     /// Second snapshot ID or revision number

@@ -2,8 +2,8 @@ use std::env;
 
 use actix_web::web::Data;
 use serde::Deserialize;
-use sqlx::any::AnyPoolOptions;
-use sqlx::AnyPool;
+use sqlx::sqlite::SqlitePoolOptions;
+use sqlx::SqlitePool;
 use tracing::info;
 
 use crate::error::AppError;
@@ -50,14 +50,14 @@ impl AppConfig {
         let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
 
         Ok(Self {
-            server_host: env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
+            server_host: env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
             server_port: env::var("SERVER_PORT")
                 .unwrap_or_else(|_| "8080".to_string())
                 .parse()
                 .map_err(|e| AppError::Config(format!("Invalid server port: {}", e)))?,
             app_env: app_env.clone(),
             database_url: env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "sqlite:data/database.db".to_string()),
+                .unwrap_or_else(|_| "sqlite:data/database.db?mode=rwc".to_string()),
             jwt_secret_key: env::var("JWT_SECRET_KEY").unwrap_or_else(|_| {
                 "default_secret_key_replace_in_production".to_string()
             }),
@@ -89,12 +89,23 @@ impl AppConfig {
 }
 
 /// Initialize database connection pool
-pub async fn init_database(config: &AppConfig) -> Result<AnyPool, AppError> {
+pub async fn init_database(config: &AppConfig) -> Result<SqlitePool, AppError> {
     info!("Initializing database connection...");
 
     let max_connections = if config.is_development() { 5 } else { 10 };
 
-    let pool = AnyPoolOptions::new()
+    // Create data directory if it doesn't exist
+    if config.database_url.starts_with("sqlite:") {
+        let db_path = config.database_url.strip_prefix("sqlite:").unwrap_or(&config.database_url);
+        let db_path = db_path.split('?').next().unwrap_or(db_path);
+        if let Some(parent) = std::path::Path::new(db_path).parent() {
+            std::fs::create_dir_all(parent).map_err(|e| {
+                AppError::Database(format!("Failed to create database directory: {}", e))
+            })?;
+        }
+    }
+
+    let pool = SqlitePoolOptions::new()
         .max_connections(max_connections)
         .connect(&config.database_url)
         .await

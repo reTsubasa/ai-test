@@ -1,5 +1,5 @@
 use actix_web::web::Data;
-use sqlx::any::AnyPool;
+use sqlx::SqlitePool;
 use tracing::info;
 
 use crate::error::AppError;
@@ -8,17 +8,17 @@ use crate::models::user::{UserRecord, UserListQuery, UserRole, UserStatus};
 /// Database connection pool wrapper
 #[derive(Clone)]
 pub struct Database {
-    pool: AnyPool,
+    pool: SqlitePool,
 }
 
 impl Database {
     /// Create a new database instance from a connection pool
-    pub fn new(pool: AnyPool) -> Self {
+    pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
     }
 
     /// Get reference to the connection pool
-    pub fn pool(&self) -> &AnyPool {
+    pub fn pool(&self) -> &SqlitePool {
         &self.pool
     }
 
@@ -321,7 +321,7 @@ impl Database {
         for value in &bind_values {
             rows_builder = rows_builder.bind(value);
         }
-        rows_builder = rows_builder.bind(per_page).bind(offset);
+        rows_builder = rows_builder.bind(per_page as i64).bind(offset as i64);
 
         let rows_result = rows_builder.fetch_all(self.pool()).await?;
 
@@ -357,7 +357,7 @@ impl Database {
 }
 
 /// Helper function to create database from config
-pub async fn create_database(pool: AnyPool) -> Result<Data<Database>, AppError> {
+pub async fn create_database(pool: SqlitePool) -> Result<Data<Database>, AppError> {
     let db = Database::new(pool);
     db.init_schema().await?;
     db.run_migrations().await?;

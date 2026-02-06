@@ -141,6 +141,12 @@ pub enum SortOrder {
     Desc,
 }
 
+impl Default for SortOrder {
+    fn default() -> Self {
+        SortOrder::Desc
+    }
+}
+
 /// CPU-specific metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CpuMetrics {

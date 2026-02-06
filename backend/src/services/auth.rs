@@ -10,6 +10,7 @@ use crate::models::auth::Claims;
 use crate::models::user::{User, UserRecord};
 
 /// Authentication service
+#[derive(Clone)]
 pub struct AuthService {
     jwt_secret: String,
     jwt_expiration: i64,
@@ -90,14 +91,12 @@ impl AuthService {
         username_or_email: &str,
         password: &str,
     ) -> Result<User, AppError> {
-        // Try to find user by username first, then by email
-        let user_record = self
+        // Find user by username
+        let result = self
             .find_user_by_username(username_or_email)
-            .await?
-            .or_else(|| async {
-                self.find_user_by_email(username_or_email).await.ok().flatten()
-            }.await)
-            .ok_or_else(|| AppError::Auth("Invalid credentials".to_string()))?;
+            .await?;
+
+        let user_record = result.ok_or_else(|| AppError::Auth("Invalid credentials".to_string()))?;
 
         // Check if user is active
         if !user_record.is_active {

@@ -5,6 +5,7 @@ use crate::error::AppError;
 use crate::models::user::{ChangePasswordRequest, UpdateProfileRequest, UpdateUserRequest, User, UserListQuery, UserListResponse, UserRecord, UserRole, UserStatus};
 
 /// User service for user management operations
+#[derive(Clone)]
 pub struct UserService {
     db: Database,
 }
@@ -29,7 +30,7 @@ impl UserService {
 
     /// List users with filtering and pagination
     pub async fn list_users(&self, query: UserListQuery) -> Result<UserListResponse, AppError> {
-        let (records, total) = self.db.list_users(query).await?;
+        let (records, total) = self.db.list_users(query.clone()).await?;
 
         let page = query.page.unwrap_or(1);
         let per_page = query.per_page.unwrap_or(20);

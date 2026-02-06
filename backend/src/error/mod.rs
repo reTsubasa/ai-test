@@ -148,13 +148,6 @@ impl From<actix_web::Error> for AppError {
     }
 }
 
-/// Convert actix_http errors to AppError
-impl From<actix_http::Error> for AppError {
-    fn from(err: actix_http::Error) -> Self {
-        AppError::Internal(format!("HTTP error: {}", err))
-    }
-}
-
 /// Parse integer errors
 impl From<std::num::ParseIntError> for AppError {
     fn from(err: std::num::ParseIntError) -> Self {

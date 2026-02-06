@@ -5,7 +5,6 @@ mod handlers;
 mod middleware;
 mod models;
 mod services;
-mod vyos_client;
 mod websocket;
 
 use actix_cors::Cors;
@@ -16,7 +15,7 @@ use tracing::info;
 use config::{AppConfig, init_database, init_logging};
 use db::{Database, create_database};
 use error::AppResult;
-use services::{AuthService, ConfigService, MonitoringService, NodeService, SystemService, UserService};
+use services::{AuthService, ConfigService, MonitoringService, SystemService, UserService};
 use websocket::ConnectionManager;
 
 #[actix_web::main]
@@ -39,7 +38,6 @@ async fn main() -> AppResult<()> {
     let db_clone = db.get_ref().clone();
     let auth_service = AuthService::new(&config, db_clone.clone());
     let user_service = UserService::new(db_clone.clone());
-    let node_service = NodeService::new(db_clone.get_pool().clone());
     let config_service = ConfigService::new(db_clone.clone(), config.clone());
     let system_service = SystemService::new(config.clone());
     let monitoring_service = MonitoringService::new(config.clone());
@@ -66,7 +64,6 @@ async fn main() -> AppResult<()> {
             .app_data(db.clone())
             .app_data(web::Data::new(auth_service.clone()))
             .app_data(web::Data::new(user_service.clone()))
-            .app_data(web::Data::new(node_service.clone()))
             .app_data(web::Data::new(config_service.clone()))
             .app_data(web::Data::new(system_service.clone()))
             .app_data(web::Data::new(monitoring_service.clone()))
@@ -93,31 +90,6 @@ async fn main() -> AppResult<()> {
                     .route("/users", web::post().to(handlers::user::create_user))
                     .route("/users/{id}", web::put().to(handlers::user::update_user))
                     .route("/users/{id}", web::delete().to(handlers::user::delete_user))
-                    // Node endpoints
-                    .route("/nodes", web::get().to(handlers::node::list_nodes))
-                    .route("/nodes", web::post().to(handlers::node::create_node))
-                    .route("/nodes/{id}", web::get().to(handlers::node::get_node))
-                    .route("/nodes/{id}", web::put().to(handlers::node::update_node))
-                    .route("/nodes/{id}", web::delete().to(handlers::node::delete_node))
-                    .route("/nodes/{id}/test", web::post().to(handlers::node::test_connection))
-                    .route("/nodes/{id}/health", web::get().to(handlers::node::get_node_health))
-                    .route("/nodes/health/all", web::get().to(handlers::node::get_all_nodes_health))
-                    .route("/nodes/health/check-all", web::post().to(handlers::node::check_all_nodes_health))
-                    .route("/nodes/{id}/config", web::post().to(handlers::node::retrieve_node_config))
-                    .route("/nodes/{id}/info", web::get().to(handlers::node::get_node_info))
-                    .route("/nodes/{id}/interfaces", web::get().to(handlers::node::get_node_interfaces))
-                    .route("/nodes/{id}/show", web::post().to(handlers::node::execute_show_command))
-                    .route("/nodes/stats", web::get().to(handlers::node::get_node_statistics))
-                    // Network endpoints
-                    .route("/network/interfaces", web::get().to(handlers::network::get_interfaces))
-                    .route("/network/interfaces/{id}", web::get().to(handlers::network::get_interface_details))
-                    .route("/network/interfaces/{id}/configure", web::post().to(handlers::network::configure_interface))
-                    .route("/network/routes", web::get().to(handlers::network::get_routing_table))
-                    .route("/network/routes", web::post().to(handlers::network::add_route))
-                    .route("/network/routes/{id}", web::delete().to(handlers::network::delete_route))
-                    .route("/network/firewall/rules", web::get().to(handlers::network::get_firewall_rules))
-                    .route("/network/firewall/rules", web::post().to(handlers::network::add_firewall_rule))
-                    .route("/network/firewall/rules/{id}", web::delete().to(handlers::network::delete_firewall_rule))
                     // Configuration endpoints
                     .route("/config/retrieve", web::post().to(handlers::config::retrieve_config))
                     .route("/config/configure", web::post().to(handlers::config::set_config))
