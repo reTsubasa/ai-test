@@ -1,0 +1,193 @@
+# =============================================================================
+# Docker Compose - Development Environment
+# =============================================================================
+# Usage:
+#   docker-compose up              # Start all services
+#   docker-compose up -d           # Start services in detached mode
+#   docker-compose down            # Stop and remove all containers
+#   docker-compose logs -f         # Follow logs from all services
+#   docker-compose logs -f backend # Follow backend logs
+# =============================================================================
+
+version: '3.9'
+
+services:
+  # -----------------------------------------------------------------------------
+  # Backend Service - Rust API Server
+  # -----------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend-builder
+    container_name: vyos-web-ui-backend-dev
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    environment:
+      # Server Configuration
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8080
+      APP_ENV: development
+      LOG_LEVEL: debug
+
+      # Database Configuration
+      DATABASE_URL: sqlite:/app/backend/data/database.db
+
+      # JWT Authentication
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev_secret_key_for_local_testing_only}
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-60}
+
+      # CORS Configuration
+      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
+
+    volumes:
+      # Mount source for hot reload (development only)
+      - ./backend/src:/app/backend/src:ro
+      - ./backend/Cargo.toml:/app/backend/Cargo.toml:ro
+      - ./backend/Cargo.lock:/app/backend/Cargo.lock:ro
+      - ./backend/migrations:/app/backend/migrations:ro
+      # Persist SQLite database
+      - backend-data:/app/backend/data
+
+    command: cargo run
+
+    depends_on:
+      sqlite:
+        condition: service_healthy
+
+    networks:
+      - vyos-network
+
+    stdin_open: true
+    tty: true
+
+  # -----------------------------------------------------------------------------
+  # Frontend Service - React Development Server
+  # -----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend-builder
+    container_name: vyos-web-ui-frontend-dev
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080/api
+      VITE_WS_URL: ws://localhost:8080/ws
+
+    volumes:
+      # Mount source for hot reload (development only)
+      - ./frontend/src:/app/frontend/src
+      - ./frontend/public:/app/frontend/public:ro
+      - ./frontend/index.html:/app/frontend/index.html:ro
+      - ./frontend/vite.config.ts:/app/frontend/vite.config.ts:ro
+      - ./frontend/tailwind.config.js:/app/frontend/tailwind.config.js:ro
+      - ./frontend/tsconfig.json:/app/frontend/tsconfig.json:ro
+      - ./frontend/tsconfig.node.json:/app/frontend/tsconfig.node.json:ro
+      - ./frontend/postcss.config.js:/app/frontend/postcss.config.js:ro
+      - ./frontend/.eslintrc.js:/app/frontend/.eslintrc.js:ro
+      - ./frontend/.prettierrc:/app/frontend/.prettierrc:ro
+      # Persist node_modules
+      - frontend-node-modules:/app/frontend/node_modules
+
+    command: npm run dev
+
+    depends_on:
+      - backend
+
+    networks:
+      - vyos-network
+
+    stdin_open: true
+    tty: true
+
+  # -----------------------------------------------------------------------------
+  # SQLite Database Service
+  # -----------------------------------------------------------------------------
+  sqlite:
+    image: alpine:3.19
+    container_name: vyos-web-ui-sqlite-dev
+    command: sh -c "mkdir -p /data && touch /data/.healthy && sleep infinity"
+    volumes:
+      - sqlite-data:/data
+    healthcheck:
+      test: test -f /data/.healthy
+      interval: 5s
+      timeout: 5s
+      retries: 3
+
+  # -----------------------------------------------------------------------------
+  # MySQL Database Service (Optional - uncomment to use)
+  # -----------------------------------------------------------------------------
+  # mysql:
+  #   image: mysql:8.0
+  #   container_name: vyos-web-ui-mysql-dev
+  #   ports:
+  #     - "${MYSQL_PORT:-3306}:3306"
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+  #     MYSQL_DATABASE: ${MYSQL_DATABASE:-vyos_web_ui}
+  #     MYSQL_USER: ${MYSQL_USER:-vyos_user}
+  #     MYSQL_PASSWORD: ${MYSQL_PASSWORD:-vyos_password}
+  #   volumes:
+  #     - mysql-data:/var/lib/mysql
+  #     - ./backend/migrations:/docker-entrypoint-initdb.d:ro
+  #   command: --default-authentication-plugin=mysql_native_password
+  #   healthcheck:
+  #     test: mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - vyos-network
+
+  # -----------------------------------------------------------------------------
+  # Mailhog - Email Testing Service
+  # -----------------------------------------------------------------------------
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: vyos-web-ui-mailhog-dev
+    ports:
+      - "${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "${MAILHOG_WEB_PORT:-8025}:8025"
+    networks:
+      - vyos-network
+
+  # -----------------------------------------------------------------------------
+  # phpMyAdmin - MySQL Management Interface (Optional - requires MySQL)
+  # -----------------------------------------------------------------------------
+  # phpmyadmin:
+  #   image: phpmyadmin/phpmyadmin:latest
+  #   container_name: vyos-web-ui-phpmyadmin-dev
+  #   ports:
+  #     - "${PHPMYADMIN_PORT:-8081}:80"
+  #   environment:
+  #     PMA_HOST: mysql
+  #     PMA_PORT: 3306
+  #     PMA_USER: root
+  #     PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+  #   depends_on:
+  #     - mysql
+  #   networks:
+  #     - vyos-network
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  vyos-network:
+    driver: bridge
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  backend-data:
+    driver: local
+  frontend-node-modules:
+    driver: local
+  sqlite-data:
+    driver: local
+  mysql-data:
+    driver: local
