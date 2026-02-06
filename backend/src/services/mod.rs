@@ -6,6 +6,7 @@
 pub mod auth;
 pub mod config;
 pub mod network;
+pub mod node_service;
 pub mod system;
 pub mod user;
 
@@ -13,5 +14,6 @@ pub mod user;
 pub use auth::*;
 pub use config::*;
 pub use network::*;
+pub use node_service::*;
 pub use system::*;
 pub use user::*;

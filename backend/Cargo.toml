@@ -10,7 +10,7 @@ actix-cors = "0.7"
 actix-rt = "2.9"
 
 # Database ORM
-sqlx = { version = "0.7", features = ["runtime-tokio", "tls-rustls", "mysql", "sqlite", "chrono", "uuid"] }
+sqlx = { version = "=0.7.4", features = ["runtime-tokio", "tls-rustls", "mysql", "sqlite", "chrono", "uuid"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -20,14 +20,16 @@ serde_json = "1.0"
 tokio = { version = "1.35", features = ["full"] }
 
 # Authentication & Security
-jsonwebtoken = "9.2"
-bcrypt = "0.15"
+jsonwebtoken = "=9.3.1"
+bcrypt = "=0.14.0"
+base64ct = "=1.6.0"
 
 # HTTP Client
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "multipart", "native-tls"] }
 
 # Time handling
 chrono = { version = "0.4", features = ["serde"] }
+time = "=0.3.36"
 
 # UUID generation
 uuid = { version = "1.6", features = ["v4", "serde"] }
@@ -37,15 +39,16 @@ validator = { version = "0.16", features = ["derive"] }
 
 # Error handling
 anyhow = "1.0"
-thiserror = "1.0"
+thiserror = "=1.0.69"
 
 # Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Configuration
-config = "0.14"
+config = "=0.14.0"
 dotenv = "0.15"
+home = "=0.5.5"
 
 # WebSocket support
 actix-ws = "0.1"
