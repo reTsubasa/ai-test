@@ -115,8 +115,33 @@ pub struct UserRecord {
 impl UserRecord {
     /// Convert database record to public User model
     pub fn to_user(&self) -> User {
+        // Convert i64 database ID to UUID deterministically
+        // Using the i64 as the lower 64 bits of a UUID v4-like format
+        let id_bytes = self.id.to_be_bytes();
+        let mut uuid_bytes = [0u8; 16];
+        // Put the i64 in the last 8 bytes (lower 64 bits)
+        uuid_bytes[8..16].copy_from_slice(&id_bytes);
+        // Set version 4 (random) and variant bits to make it a valid UUID
+        uuid_bytes[6] = (uuid_bytes[6] & 0x0f) | 0x40; // Version 4
+        uuid_bytes[8] = (uuid_bytes[8] & 0x3f) | 0x80; // Variant 1
+        let id = Uuid::from_bytes(uuid_bytes);
+
+        // Parse SQLite datetime format (e.g., "2026-02-09 08:58:56")
+        let parse_sqlite_datetime = |s: &str| -> DateTime<Utc> {
+            // Try RFC3339 first
+            if let Ok(dt) = DateTime::parse_from_rfc3339(s) {
+                return dt.with_timezone(&Utc);
+            }
+            // Try SQLite format: "YYYY-MM-DD HH:MM:SS"
+            if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S") {
+                return DateTime::from_naive_utc_and_offset(dt, Utc);
+            }
+            // Fallback to epoch
+            DateTime::UNIX_EPOCH
+        };
+
         User {
-            id: uuid::Uuid::new_v4(), // Use integer ID in production
+            id,
             username: self.username.clone(),
             email: self.email.clone(),
             full_name: self.full_name.clone(),
@@ -130,17 +155,9 @@ impl UserRecord {
             } else {
                 UserStatus::Disabled
             },
-            last_login: self.last_login.as_ref().and_then(|s| {
-                DateTime::parse_from_rfc3339(s)
-                    .ok()
-                    .map(|dt| dt.with_timezone(&Utc))
-            }),
-            created_at: DateTime::parse_from_rfc3339(&self.created_at)
-                .unwrap_or_default()
-                .with_timezone(&Utc),
-            updated_at: DateTime::parse_from_rfc3339(&self.updated_at)
-                .unwrap_or_default()
-                .with_timezone(&Utc),
+            last_login: self.last_login.as_ref().map(|s| parse_sqlite_datetime(s)),
+            created_at: parse_sqlite_datetime(&self.created_at),
+            updated_at: parse_sqlite_datetime(&self.updated_at),
         }
     }
 

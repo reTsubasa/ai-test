@@ -26,8 +26,37 @@ impl Database {
     pub async fn init_schema(&self) -> Result<(), AppError> {
         info!("Initializing database schema...");
 
-        // For SQLite, the migrations would typically be run separately
-        // This is a placeholder for schema initialization logic
+        // Check if the users table already exists
+        let table_exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='users')"
+        )
+        .fetch_one(self.pool())
+        .await?;
+
+        if table_exists {
+            info!("Database schema already exists, skipping initialization");
+            return Ok(());
+        }
+
+        // Read and execute the migration file
+        let migration_sql = include_str!("../../migrations/001_initial_schema.sql");
+
+        // Execute the entire migration as a batch
+        // SQLite doesn't support multiple statements in a single execute,
+        // so we split by semicolons and execute each statement
+        for statement in migration_sql.split(';') {
+            let statement = statement.trim();
+            if statement.is_empty() || statement.starts_with("--") {
+                continue;
+            }
+            if let Err(e) = sqlx::query(statement).execute(self.pool()).await {
+                // Log but don't fail for certain errors (like PRAGMA statements)
+                if !e.to_string().contains("query returned no rows") {
+                    tracing::warn!("Migration statement warning: {} - Statement: {}", e, statement);
+                }
+            }
+        }
+
         info!("Database schema initialization complete");
 
         Ok(())
@@ -38,7 +67,9 @@ impl Database {
         info!("Running database migrations...");
 
         // In a production setup, you would use sqlx::migrate! here
-        // For now, we'll just log the intention
+        // The schema initialization above handles the initial migration
+        // Future migrations would be tracked in a _migrations table
+
         info!("Database migrations completed");
 
         Ok(())
@@ -152,7 +183,7 @@ impl Database {
             RETURNING id
         "#;
 
-        let result = sqlx::query_scalar::<_, i64>(query)
+        let id: i64 = sqlx::query_scalar(query)
             .bind(username)
             .bind(email)
             .bind(password_hash)
@@ -160,7 +191,7 @@ impl Database {
             .fetch_one(self.pool())
             .await?;
 
-        Ok(result)
+        Ok(id)
     }
 
     /// Update a user's profile
@@ -171,16 +202,16 @@ impl Database {
         full_name: Option<&str>,
     ) -> Result<(), AppError> {
         let mut updates = vec![];
-        let mut index = 1;
+        let mut bind_values: Vec<&str> = vec![];
 
-        if email.is_some() {
-            updates.push(format!("email = ?{}", index));
-            index += 1;
+        if let Some(e) = email {
+            updates.push("email = ?");
+            bind_values.push(e);
         }
 
-        if full_name.is_some() {
-            updates.push(format!("full_name = ?{}", index));
-            index += 1;
+        if let Some(fn_) = full_name {
+            updates.push("full_name = ?");
+            bind_values.push(fn_);
         }
 
         if updates.is_empty() {
@@ -188,20 +219,17 @@ impl Database {
         }
 
         let query = format!(
-            "UPDATE users SET {} WHERE id = ?{}",
-            updates.join(", "),
-            index
+            "UPDATE users SET {} WHERE id = ?",
+            updates.join(", ")
         );
 
         let mut query_builder = sqlx::query(&query);
-        query_builder = query_builder.bind(user_id);
 
-        if let Some(e) = email {
-            query_builder = query_builder.bind(e);
+        // Bind values in the correct order: first the SET values, then the WHERE id
+        for value in bind_values {
+            query_builder = query_builder.bind(value);
         }
-        if let Some(fn_) = full_name {
-            query_builder = query_builder.bind(fn_);
-        }
+        query_builder = query_builder.bind(user_id);
 
         query_builder.execute(self.pool()).await?;
 

@@ -1,10 +1,11 @@
 use actix_web::{web, HttpResponse};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use validator::Validate;
-use tracing::{info, warn};
+use tracing::info;
 
 use crate::error::{AppError, AppResult};
-use crate::models::auth::{Claims, LoginRequest, LoginResponse, RegisterRequest, UserResponse};
+use crate::models::auth::{Claims, LoginRequest, LoginResponse, RegisterRequest, SimpleLoginResponse, UserResponse};
+use crate::models::user::UserStatus;
 use crate::services::AuthService;
 
 /// Health check endpoint
@@ -42,15 +43,29 @@ pub async fn register(
         )
         .await?;
 
-    // Generate token for the new user
-    let token = auth_service.generate_token(&user.id.to_string(), &user.username)?;
+    // Generate tokens for the new user
+    let user_id_str = user.id.to_string();
+    let access_token = auth_service.generate_token(&user_id_str, &user.username)?;
+    let refresh_token = auth_service.generate_refresh_token(&user_id_str, &user.username)?;
+    let expires_in = auth_service.get_expiration();
 
     info!("User registered successfully: {}", user.username);
 
     Ok(HttpResponse::Created().json(LoginResponse {
-        token,
-        user_id: user.id.to_string(),
-        username: user.username,
+        user: UserResponse {
+            id: user.id,
+            username: user.username.clone(),
+            email: user.email,
+            full_name: user.full_name,
+            role: user.role,
+            status: UserStatus::Active,
+            last_login: user.last_login,
+            created_at: user.created_at,
+            updated_at: user.updated_at,
+        },
+        access_token,
+        refresh_token,
+        expires_in,
     }))
 }
 
@@ -68,15 +83,29 @@ pub async fn login(
         .authenticate(&req.username, &req.password)
         .await?;
 
-    // Generate JWT token
-    let token = auth_service.generate_token(&user.id.to_string(), &user.username)?;
+    // Generate tokens
+    let user_id_str = user.id.to_string();
+    let access_token = auth_service.generate_token(&user_id_str, &user.username)?;
+    let refresh_token = auth_service.generate_refresh_token(&user_id_str, &user.username)?;
+    let expires_in = auth_service.get_expiration();
 
     info!("User logged in successfully: {}", user.username);
 
     Ok(HttpResponse::Ok().json(LoginResponse {
-        token,
-        user_id: user.id.to_string(),
-        username: user.username,
+        user: UserResponse {
+            id: user.id,
+            username: user.username.clone(),
+            email: user.email,
+            full_name: user.full_name,
+            role: user.role,
+            status: UserStatus::Active,
+            last_login: user.last_login,
+            created_at: user.created_at,
+            updated_at: user.updated_at,
+        },
+        access_token,
+        refresh_token,
+        expires_in,
     }))
 }
 
@@ -107,7 +136,7 @@ pub async fn refresh_token(
 
     info!("Token refreshed for user: {}", claims.username);
 
-    Ok(HttpResponse::Ok().json(LoginResponse {
+    Ok(HttpResponse::Ok().json(SimpleLoginResponse {
         token: new_token,
         user_id: new_claims.sub.clone(),
         username: new_claims.username.clone(),
