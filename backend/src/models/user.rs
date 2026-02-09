@@ -112,19 +112,42 @@ pub struct UserRecord {
     pub updated_at: String,
 }
 
+/// Extract the database i64 ID from a UUID that was created by i64_to_uuid()
+/// This reverses the conversion done in to_user()
+pub fn extract_db_id_from_uuid(uuid: &Uuid) -> i64 {
+    let uuid_bytes = *uuid.as_bytes();
+    // Extract the last 8 bytes and reverse the variant bit operation
+    let mut id_bytes = [0u8; 8];
+    id_bytes.copy_from_slice(&uuid_bytes[8..16]);
+    // The variant bit was set: (byte & 0x3f) | 0x80
+    // To reverse, we clear the top 2 bits that were set by 0x80
+    id_bytes[0] = id_bytes[0] & 0x3f;
+    i64::from_be_bytes(id_bytes)
+}
+
+/// Convert an i64 database ID to a UUID deterministically
+pub fn i64_to_uuid(id: i64) -> Uuid {
+    let id_bytes = id.to_be_bytes();
+    let mut uuid_bytes = [0u8; 16];
+    // Put the i64 in the last 8 bytes (lower 64 bits)
+    uuid_bytes[8..16].copy_from_slice(&id_bytes);
+    // Set version 4 (random) and variant bits to make it a valid UUID
+    uuid_bytes[6] = (uuid_bytes[6] & 0x0f) | 0x40; // Version 4
+    uuid_bytes[8] = (uuid_bytes[8] & 0x3f) | 0x80; // Variant 1
+    Uuid::from_bytes(uuid_bytes)
+}
+
+impl User {
+    /// Get the database ID (i64) from this user's UUID
+    pub fn db_id(&self) -> i64 {
+        extract_db_id_from_uuid(&self.id)
+    }
+}
+
 impl UserRecord {
     /// Convert database record to public User model
     pub fn to_user(&self) -> User {
-        // Convert i64 database ID to UUID deterministically
-        // Using the i64 as the lower 64 bits of a UUID v4-like format
-        let id_bytes = self.id.to_be_bytes();
-        let mut uuid_bytes = [0u8; 16];
-        // Put the i64 in the last 8 bytes (lower 64 bits)
-        uuid_bytes[8..16].copy_from_slice(&id_bytes);
-        // Set version 4 (random) and variant bits to make it a valid UUID
-        uuid_bytes[6] = (uuid_bytes[6] & 0x0f) | 0x40; // Version 4
-        uuid_bytes[8] = (uuid_bytes[8] & 0x3f) | 0x80; // Variant 1
-        let id = Uuid::from_bytes(uuid_bytes);
+        let id = i64_to_uuid(self.id);
 
         // Parse SQLite datetime format (e.g., "2026-02-09 08:58:56")
         let parse_sqlite_datetime = |s: &str| -> DateTime<Utc> {

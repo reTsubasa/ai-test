@@ -2,10 +2,11 @@ use actix_web::{web, HttpResponse};
 use serde::Serialize;
 use validator::Validate;
 use tracing::info;
+use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
 use crate::models::auth::{Claims, LoginRequest, LoginResponse, RegisterRequest, SimpleLoginResponse, UserResponse};
-use crate::models::user::UserStatus;
+use crate::models::user::{UserStatus, extract_db_id_from_uuid};
 use crate::services::AuthService;
 
 /// Health check endpoint
@@ -114,8 +115,10 @@ pub async fn logout(
     claims: Claims,
     auth_service: web::Data<AuthService>,
 ) -> AppResult<HttpResponse> {
-    // Parse user ID from claims (convert string to i64)
-    let user_id: i64 = claims.sub.parse().unwrap_or(0);
+    // Parse user ID from claims (UUID string -> extract i64)
+    let uuid = Uuid::parse_str(&claims.sub)
+        .map_err(|_| AppError::Auth("Invalid user ID in token".to_string()))?;
+    let user_id: i64 = extract_db_id_from_uuid(&uuid);
 
     auth_service.logout(user_id).await?;
 
@@ -161,8 +164,10 @@ pub async fn get_current_user(
     claims: Claims,
     auth_service: web::Data<AuthService>,
 ) -> AppResult<HttpResponse> {
-    // Parse user ID from claims
-    let user_id: i64 = claims.sub.parse().unwrap_or(0);
+    // Parse user ID from claims (UUID string -> extract i64)
+    let uuid = Uuid::parse_str(&claims.sub)
+        .map_err(|_| AppError::Auth("Invalid user ID in token".to_string()))?;
+    let user_id: i64 = extract_db_id_from_uuid(&uuid);
 
     // Fetch user from database
     let user_record = auth_service
