@@ -5,6 +5,8 @@ import { ProtectedRoute } from './components/common/ProtectedRoute';
 
 // Pages
 import { LoginPage } from './pages/auth/LoginPage';
+import { RegisterPage } from './pages/auth/RegisterPage';
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { NetworkConfigPage } from './pages/network/NetworkConfigPage';
 import { MonitoringPage } from './pages/monitoring/MonitoringPage';
@@ -16,7 +18,10 @@ function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vyos-ui-theme">
       <Routes>
+        {/* Auth routes - no authentication required */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route
           path="/*"
           element={
